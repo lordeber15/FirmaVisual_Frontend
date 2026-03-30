@@ -4,7 +4,7 @@ import { useAuth } from '../features/auth/AuthContext';
 import Layout from '../components/Layout';
 import CanvasSignature from '../features/signatures/CanvasSignature';
 import api from '../services/api';
-import { CheckCircle, AlertCircle, Eye, Settings, ShieldOff, Users, XCircle } from 'lucide-react';
+import { CheckCircle, AlertCircle, Eye, Settings, ShieldOff, Users, XCircle, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function SignatureViewPage() {
@@ -17,16 +17,17 @@ export default function SignatureViewPage() {
   const [alreadySigned, setAlreadySigned] = useState(false);
   const [notAssigned, setNotAssigned] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [signedFileUrl, setSignedFileUrl] = useState(null);
   const [showError, setShowError] = useState(null);
   const [totalPages, setTotalPages] = useState(0);
   const [pageMode, setPageMode] = useState('all');
   const [pageRange, setPageRange] = useState('');
 
   const sigData = {
-    name: user?.signatureSettings?.stampName || user?.username || 'USUARIO RPD',
+    name: user?.signatureSettings?.stampName || user?.username || 'USUARIO',
     position: user?.signatureSettings?.stampPosition || user?.role || 'FIRMANTE',
     colegiatura: user?.signatureSettings?.colegiatura || 'CIP: 123456',
-    details: user?.signatureSettings?.details || 'RPD - SEDE CENTRAL'
+    details: user?.signatureSettings?.details || 'SEDE CENTRAL'
   };
 
   // Cargar info de firmantes al montar
@@ -59,7 +60,7 @@ export default function SignatureViewPage() {
     if (!coords) return setShowError('Por favor, ubica la firma en el documento antes de estampar.');
     setIsSigning(true);
     try {
-      await api.post('/signatures', {
+      const response = await api.post('/signatures', {
         documentId: id,
         type: 'VISUAL',
         coords: { ...coords, pageMode, pageRange },
@@ -70,9 +71,15 @@ export default function SignatureViewPage() {
           details: sigData.details,
           dateTime: new Date().toLocaleString(),
           hash: Math.random().toString(36).substring(2, 12).toUpperCase(),
-          settings: user?.signatureSettings
+          settings: {
+            ...user?.signatureSettings,
+            rotation: user?.signatureSettings?.rotation || 0
+          }
         }
       });
+      if (response.data?.signedFilename) {
+        setSignedFileUrl(`/uploads/${response.data.signedFilename}`);
+      }
       setShowSuccess(true);
     } catch (err) {
       const msg = err.response?.data?.message || err.message;
@@ -92,7 +99,7 @@ export default function SignatureViewPage() {
         <div className="flex-1 bg-slate-100 rounded-[2rem] shadow-inner border border-slate-200 overflow-hidden relative">
           <CanvasSignature
             documentId={id}
-            onCoordsChange={canSign ? setCoords : () => {}}
+            onCoordsChange={canSign ? setCoords : () => { }}
             onTotalPages={setTotalPages}
             sigData={sigData}
             settings={user?.signatureSettings}
@@ -104,12 +111,12 @@ export default function SignatureViewPage() {
         <div className="w-full lg:w-96 space-y-6">
           {/* Alerta si ya firmó */}
           {alreadySigned && (
-            <div className="bg-emerald-50 p-5 rounded-[2rem] border border-emerald-200">
+            <div className="bg-success-50 p-5 rounded-[2rem] border border-success-200">
               <div className="flex items-start space-x-3">
-                <CheckCircle className="w-6 h-6 text-emerald-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle className="w-6 h-6 text-success mt-0.5 flex-shrink-0" />
                 <div>
-                  <h4 className="text-sm font-black text-emerald-800 mb-1">Ya has firmado</h4>
-                  <p className="text-xs text-emerald-600">Este documento ya cuenta con tu firma. No puedes firmarlo nuevamente.</p>
+                  <h4 className="text-sm font-black text-success mb-1">Ya has firmado</h4>
+                  <p className="text-xs text-success">Este documento ya cuenta con tu firma. No puedes firmarlo nuevamente.</p>
                 </div>
               </div>
             </div>
@@ -130,10 +137,10 @@ export default function SignatureViewPage() {
 
           {/* Panel de firma */}
           <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-200/60 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-[100px] -z-10"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary-50 rounded-bl-[100px] -z-10"></div>
 
             <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center">
-              <Eye className="w-6 h-6 mr-3 text-blue-600" />
+              <Eye className="w-6 h-6 mr-3 text-primary" />
               Vista de Firma
             </h3>
 
@@ -154,9 +161,9 @@ export default function SignatureViewPage() {
                 </div>
               </div>
 
-              <div className="flex justify-between items-center text-xs px-2 py-1 bg-blue-50/50 rounded-lg">
-                <span className="font-medium text-blue-800">Tamaño del sello</span>
-                <span className="font-bold text-blue-600">{user?.signatureSettings?.width || 220}x{user?.signatureSettings?.height || 100}px</span>
+              <div className="flex justify-between items-center text-xs px-2 py-1 bg-primary-50/50 rounded-lg">
+                <span className="font-medium text-primary-800">Tamaño del sello</span>
+                <span className="font-bold text-primary">{user?.signatureSettings?.width || 220}x{user?.signatureSettings?.height || 100}px</span>
               </div>
 
               {/* Selector de páginas */}
@@ -172,11 +179,10 @@ export default function SignatureViewPage() {
                       <button
                         key={opt.value}
                         onClick={() => setPageMode(opt.value)}
-                        className={`flex-1 py-2 text-[10px] font-bold uppercase rounded-lg border transition-all ${
-                          pageMode === opt.value
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300'
-                        }`}
+                        className={`flex-1 py-2 text-[10px] font-bold uppercase rounded-lg border transition-all ${pageMode === opt.value
+                          ? 'bg-primary text-white border-primary'
+                          : 'bg-white text-slate-500 border-slate-200 hover:border-primary-200'
+                          }`}
                       >
                         {opt.label}
                       </button>
@@ -188,7 +194,7 @@ export default function SignatureViewPage() {
                       placeholder="Ej: 1-5, 8, 10-12"
                       value={pageRange}
                       onChange={(e) => setPageRange(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-xs font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-xs font-medium outline-none focus:ring-2 focus:ring-primary"
                     />
                   )}
                   <p className="text-[10px] text-slate-400">
@@ -205,7 +211,7 @@ export default function SignatureViewPage() {
               <button
                 onClick={handleSign}
                 disabled={isSigning || !coords || !canSign}
-                className="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-blue-500/30 hover:bg-blue-700 disabled:bg-slate-300 disabled:shadow-none active:scale-95 transition-all flex items-center justify-center"
+                className="w-full bg-primary text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-primary/30 hover:bg-primary-700 disabled:bg-slate-300 disabled:shadow-none active:scale-95 transition-all flex items-center justify-center"
               >
                 {isSigning ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -224,7 +230,7 @@ export default function SignatureViewPage() {
             </div>
 
             <div className="mt-6 flex justify-center">
-              <button onClick={() => navigate('/signature-settings')} className="text-[10px] flex items-center text-slate-400 hover:text-blue-600 font-bold uppercase tracking-widest transition-colors">
+              <button onClick={() => navigate('/signature-settings')} className="text-[10px] flex items-center text-slate-400 hover:text-primary font-bold uppercase tracking-widest transition-colors">
                 <Settings className="w-3 h-3 mr-1.5" /> Modificar Diseño
               </button>
             </div>
@@ -234,25 +240,23 @@ export default function SignatureViewPage() {
           {signers.length > 0 && (
             <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
               <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center">
-                <Users className="w-4 h-4 mr-2 text-violet-600" />
+                <Users className="w-4 h-4 mr-2 text-secondary" />
                 Firmantes ({signatures.length}/{signers.length})
               </h4>
               <div className="space-y-2">
                 {signers.map((s) => (
                   <div key={s.id} className="flex items-center justify-between py-2 px-3 rounded-xl bg-slate-50">
                     <div className="flex items-center space-x-2">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${
-                        s.status === 'SIGNED' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-500'
-                      }`}>
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${s.status === 'SIGNED' ? 'bg-success-100 text-success' : 'bg-slate-200 text-slate-500'
+                        }`}>
                         {(s.user?.username || '?')[0].toUpperCase()}
                       </div>
                       <span className="text-sm font-medium text-slate-700">{s.user?.username}</span>
                     </div>
-                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
-                      s.status === 'SIGNED'
-                        ? 'bg-emerald-100 text-emerald-600'
-                        : 'bg-amber-100 text-amber-600'
-                    }`}>
+                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${s.status === 'SIGNED'
+                      ? 'bg-success-100 text-success'
+                      : 'bg-amber-100 text-amber-600'
+                      }`}>
                       {s.status === 'SIGNED' ? 'Firmado' : 'Pendiente'}
                     </span>
                   </div>
@@ -298,13 +302,13 @@ export default function SignatureViewPage() {
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.1, type: 'spring', damping: 12, stiffness: 200 }}
-                  className="absolute inset-0 bg-emerald-500 rounded-full"
+                  className="absolute inset-0 bg-success rounded-full"
                 />
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: [0, 1, 0] }}
                   transition={{ delay: 0.2, duration: 1, repeat: Infinity }}
-                  className="absolute inset-[-8px] border-2 border-emerald-500 rounded-full"
+                  className="absolute inset-[-8px] border-2 border-success rounded-full"
                 />
                 <div className="absolute inset-0 flex items-center justify-center">
                   <motion.svg
@@ -322,8 +326,8 @@ export default function SignatureViewPage() {
                       strokeLinejoin="round"
                       variants={{
                         hidden: { pathLength: 0, opacity: 0 },
-                        visible: { 
-                          pathLength: 1, 
+                        visible: {
+                          pathLength: 1,
                           opacity: 1,
                           transition: { delay: 0.3, duration: 0.5, ease: "easeOut" }
                         }
@@ -333,7 +337,7 @@ export default function SignatureViewPage() {
                 </div>
               </div>
 
-              <motion.h3 
+              <motion.h3
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
@@ -341,20 +345,36 @@ export default function SignatureViewPage() {
               >
                 ¡Documento Firmado!
               </motion.h3>
-              
-              <motion.p 
+
+              <motion.p
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
                 className="text-sm text-slate-500 mb-10 leading-relaxed"
               >
-                Tu firma digital ha sido estampada con éxito. El documento ahora cuenta con validez legal RPD.
+                Tu firma digital ha sido estampada con éxito. El documento ahora cuenta con validez legal.
               </motion.p>
+
+              {/* {signedFileUrl && (
+                <motion.a
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                  href={signedFileUrl}
+                  download
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full bg-success text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl hover:bg-success-600 active:scale-95 transition-all flex items-center justify-center mb-3"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Descargar Documento Firmado
+                </motion.a>
+              )} */}
 
               <motion.button
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
+                transition={{ delay: 0.7 }}
                 onClick={() => navigate('/')}
                 className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl hover:bg-slate-800 active:scale-95 transition-all"
               >

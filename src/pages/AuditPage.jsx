@@ -38,7 +38,7 @@ export default function AuditPage() {
             <Activity className="w-5 h-5" />
             <span className="font-semibold text-lg">Trazabilidad de Acciones</span>
           </div>
-          <span className="text-xs bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded-full">
+          <span className="text-xs bg-primary-100 text-primary-700 font-bold px-3 py-1 rounded-full">
             {totalLogs} Registros Totales
           </span>
         </div>
@@ -46,7 +46,7 @@ export default function AuditPage() {
         <div className="overflow-x-auto min-h-[400px] relative">
           {loading && (
             <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center">
-              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
             </div>
           )}
           <table className="w-full text-left">
@@ -70,9 +70,9 @@ export default function AuditPage() {
                 >
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase ${
-                      log.action.includes('SIGN') ? 'bg-emerald-100 text-emerald-700' : 
+                      log.action.includes('SIGN') ? 'bg-success-100 text-success' : 
                       log.action.includes('REPLACE') ? 'bg-amber-100 text-amber-700' :
-                      'bg-blue-100 text-blue-700'
+                      'bg-primary-100 text-primary-700'
                     }`}>
                       {log.action}
                     </span>
@@ -133,8 +133,8 @@ export default function AuditPage() {
                       onClick={() => setPage(p)}
                       className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${
                         page === p 
-                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' 
-                          : 'bg-white border border-slate-200 text-slate-600 hover:border-blue-300'
+                          ? 'bg-primary text-white shadow-lg shadow-primary/30' 
+                          : 'bg-white border border-slate-200 text-slate-600 hover:border-primary-200'
                       }`}
                     >
                       {p}

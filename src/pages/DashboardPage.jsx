@@ -16,6 +16,9 @@ export default function DashboardPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  // Proyectos y Modal de subida
+  const [projects, setProjects] = useState([]);
+  const [uploadProjectId, setUploadProjectId] = useState('');
   const [showUpload, setShowUpload] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [file, setFile] = useState(null);
@@ -46,7 +49,17 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchDocuments();
+    if (canManage) fetchProjects();
   }, [page, debouncedSearch]);
+
+  const fetchProjects = async () => {
+    try {
+      const { data } = await api.get('/projects');
+      setProjects(data);
+    } catch (err) {
+      console.error('Error fetching projects:', err);
+    }
+  };
 
   const fetchDocuments = async () => {
     setLoading(true);
@@ -68,6 +81,7 @@ export default function DashboardPage() {
 
     const formData = new FormData();
     formData.append('pdf', file);
+    formData.append('projectId', uploadProjectId);
 
     try {
       await api.post('/documents', formData, {
@@ -128,8 +142,8 @@ export default function DashboardPage() {
 
   const statusColors = {
     'PENDING': 'bg-amber-100 text-amber-600 border-amber-200',
-    'PARTIAL': 'bg-blue-100 text-blue-600 border-blue-200',
-    'COMPLETED': 'bg-emerald-100 text-emerald-600 border-emerald-200',
+    'PARTIAL': 'bg-primary-100 text-primary border-primary-200',
+    'COMPLETED': 'bg-success-100 text-success border-success-200',
     'REPLACED': 'bg-slate-100 text-slate-600 border-slate-200',
   };
 
@@ -144,21 +158,21 @@ export default function DashboardPage() {
   return (
     <Layout title="Dashboard de Documentos">
       {/* Actions Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div className="relative max-w-md w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div className="relative max-w-md w-full group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 group-focus-within:text-primary transition-colors" />
           <input
             type="text"
             placeholder="Buscar documentos..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white border border-slate-200 rounded-xl py-3 pl-11 pr-4 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm text-slate-900"
+            className="w-full bg-white border border-slate-200 rounded-xl py-3 pl-11 pr-4 focus:ring-2 focus:ring-primary outline-none shadow-sm text-slate-900"
           />
         </div>
         {canManage && (
           <button
             onClick={() => setShowUpload(true)}
-            className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-3 rounded-xl flex items-center justify-center space-x-2 shadow-lg shadow-blue-500/30 transition-all"
+            className="bg-primary hover:bg-primary-500 text-white font-bold px-6 py-3 rounded-xl flex items-center justify-center space-x-2 shadow-lg shadow-primary/30 transition-all whitespace-nowrap"
           >
             <Upload className="w-5 h-5" />
             <span>Subir Documento</span>
@@ -168,7 +182,13 @@ export default function DashboardPage() {
 
       {/* Documents Table */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        <table className="w-full text-left">
+        {loading && (
+          <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        )}
+        <div className="overflow-x-auto scrollbar-hide">
+          <table className="w-full text-left min-w-[800px]">
           <thead className="bg-slate-50/50 border-b border-slate-200">
             <tr>
               <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Documento</th>
@@ -179,12 +199,7 @@ export default function DashboardPage() {
               <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Acciones</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 relative">
-            {loading && (
-              <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center">
-                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-              </div>
-            )}
+          <tbody className="divide-y divide-slate-100">
             {documents.length > 0 ? documents.map((doc) => {
               const signers = doc.signers || [];
               const signedCount = signers.filter(s => s.status === 'SIGNED').length;
@@ -220,7 +235,7 @@ export default function DashboardPage() {
                                 key={s.id}
                                 className={`w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-[9px] font-black uppercase ${
                                   s.status === 'SIGNED'
-                                    ? 'bg-emerald-100 text-emerald-600'
+                                    ? 'bg-success-100 text-success'
                                     : 'bg-slate-100 text-slate-500'
                                 }`}
                                 title={`${s.user?.username || 'Usuario'} - ${s.status === 'SIGNED' ? 'Firmado' : 'Pendiente'}`}
@@ -241,7 +256,7 @@ export default function DashboardPage() {
                         {/* Mini progress bar */}
                         <div className="w-20 bg-slate-100 rounded-full h-1.5">
                           <div
-                            className={`h-1.5 rounded-full transition-all ${signedCount === totalSigners ? 'bg-emerald-500' : 'bg-blue-500'}`}
+                            className={`h-1.5 rounded-full transition-all ${signedCount === totalSigners ? 'bg-success' : 'bg-primary-500'}`}
                             style={{ width: `${totalSigners > 0 ? (signedCount / totalSigners) * 100 : 0}%` }}
                           />
                         </div>
@@ -262,7 +277,7 @@ export default function DashboardPage() {
                       {canSign && (
                         <Link
                           to={`/signature/${doc.id}`}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-block"
+                          className="p-2 text-primary hover:bg-primary-50 rounded-lg transition-colors inline-block"
                           title="Firmar"
                         >
                           <ShieldCheck className="w-5 h-5" />
@@ -271,7 +286,7 @@ export default function DashboardPage() {
                       <a
                         href={`/uploads/${(doc.signedPath || doc.originalPath).split(/[\\/]/).pop()}`}
                         download
-                        className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors inline-block"
+                        className="p-2 text-success hover:bg-success-50 rounded-lg transition-colors inline-block"
                         title="Descargar"
                         target="_blank"
                         rel="noreferrer"
@@ -281,7 +296,7 @@ export default function DashboardPage() {
                       {canManage && (
                         <button
                           onClick={() => openAssignModal(doc.id)}
-                          className="p-2 text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
+                          className="p-2 text-secondary hover:bg-secondary-50 rounded-lg transition-colors"
                           title="Asignar Firmantes"
                         >
                           <UserPlus className="w-5 h-5" />
@@ -300,6 +315,7 @@ export default function DashboardPage() {
             )}
           </tbody>
         </table>
+      </div>
 
         {/* Paginación */}
         {totalPages > 1 && (
@@ -331,8 +347,8 @@ export default function DashboardPage() {
                       onClick={() => setPage(p)}
                       className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${
                         page === p 
-                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' 
-                          : 'bg-white border border-slate-200 text-slate-600 hover:border-blue-300'
+                          ? 'bg-primary text-white shadow-lg shadow-primary/30' 
+                          : 'bg-white border border-slate-200 text-slate-600 hover:border-primary-200'
                       }`}
                     >
                       {p}
@@ -372,7 +388,7 @@ export default function DashboardPage() {
             >
               <h3 className="text-2xl font-bold mb-6">Subir nuevo PDF</h3>
               <form onSubmit={handleUpload}>
-                <div className="border-2 border-dashed border-slate-200 rounded-2xl p-10 text-center mb-6 hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer">
+                <div className="border-2 border-dashed border-slate-200 rounded-2xl p-10 text-center mb-6 hover:border-primary-200 hover:bg-primary-50 transition-all cursor-pointer">
                   <input
                     type="file"
                     accept=".pdf"
@@ -381,7 +397,7 @@ export default function DashboardPage() {
                     onChange={(e) => setFile(e.target.files[0])}
                   />
                   <label htmlFor="fileInput" className="cursor-pointer">
-                    <Upload className="w-12 h-12 text-blue-500 mx-auto mb-4" />
+                    <Upload className="w-12 h-12 text-primary mx-auto mb-4" />
                     <p className="text-lg font-medium">Arrastra tu PDF aquí</p>
                     <p className="text-slate-400">o haz clic para seleccionar (Máx. 500MB)</p>
                   </label>
@@ -397,15 +413,38 @@ export default function DashboardPage() {
                   </div>
                 )}
 
+                {/* Selección de Proyecto */}
+                <div className="mb-6">
+                  <label className="block text-sm font-bold text-slate-700 mb-2">
+                    Asignar a Proyecto *
+                  </label>
+                  <select
+                    required
+                    value={uploadProjectId}
+                    onChange={(e) => setUploadProjectId(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                  >
+                    <option value="">Seleccione un proyecto...</option>
+                    {projects.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                  {projects.length === 0 && (
+                    <p className="mt-2 text-xs text-amber-600">
+                      Debes tener al menos un proyecto creado para subir documentos.
+                    </p>
+                  )}
+                </div>
+
                 {uploadProgress > 0 && (
                   <div className="mb-6">
                     <div className="flex justify-between mb-2">
-                      <span className="text-sm font-medium text-blue-600">Subiendo...</span>
-                      <span className="text-sm font-medium text-blue-600">{uploadProgress}%</span>
+                      <span className="text-sm font-medium text-primary">Subiendo...</span>
+                      <span className="text-sm font-medium text-primary">{uploadProgress}%</span>
                     </div>
                     <div className="w-full bg-slate-100 rounded-full h-2">
                       <div
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        className="bg-primary h-2 rounded-full transition-all duration-300"
                         style={{ width: `${uploadProgress}%` }}
                       />
                     </div>
@@ -422,7 +461,7 @@ export default function DashboardPage() {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/30"
+                    className="flex-1 px-4 py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary-700 shadow-lg shadow-primary/30"
                   >
                     Cargar Archivo
                   </button>
@@ -452,7 +491,7 @@ export default function DashboardPage() {
             >
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-bold flex items-center">
-                  <Users className="w-5 h-5 mr-2 text-violet-600" />
+                  <Users className="w-5 h-5 mr-2 text-secondary" />
                   Asignar Firmantes
                 </h3>
                 <button onClick={() => setShowAssign(null)} className="p-1 hover:bg-slate-100 rounded-lg">
@@ -462,7 +501,7 @@ export default function DashboardPage() {
 
               {assignLoading ? (
                 <div className="flex justify-center py-8">
-                  <div className="w-8 h-8 border-3 border-violet-600 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-8 h-8 border-3 border-secondary border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : (
                 <>
@@ -472,7 +511,7 @@ export default function DashboardPage() {
                         key={u.id}
                         className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
                           selectedUserIds.includes(u.id)
-                            ? 'border-violet-300 bg-violet-50'
+                            ? 'border-secondary-300 bg-secondary-50'
                             : 'border-slate-100 hover:bg-slate-50'
                         }`}
                       >
@@ -481,7 +520,7 @@ export default function DashboardPage() {
                             type="checkbox"
                             checked={selectedUserIds.includes(u.id)}
                             onChange={() => toggleUser(u.id)}
-                            className="w-4 h-4 rounded text-violet-600"
+                            className="w-4 h-4 rounded text-secondary"
                           />
                           <div>
                             <p className="text-sm font-bold text-slate-800">{u.username}</p>
@@ -502,7 +541,7 @@ export default function DashboardPage() {
                     <button
                       onClick={handleAssignSigners}
                       disabled={selectedUserIds.length === 0 || assignLoading}
-                      className="bg-violet-600 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-violet-500/30 transition-all"
+                      className="bg-secondary text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-secondary-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-secondary-500/30 transition-all"
                     >
                       Asignar Firmantes
                     </button>

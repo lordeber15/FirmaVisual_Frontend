@@ -36,7 +36,7 @@ export default function SignatureSettingsPage() {
     stampName: user?.signatureSettings?.stampName || user?.username || 'JUAN PÉREZ GARCÍA',
     stampPosition: user?.signatureSettings?.stampPosition || user?.role || 'GERENTE DE OPERACIONES',
     colegiatura: user?.signatureSettings?.colegiatura || 'CIP: 123456',
-    details: user?.signatureSettings?.details || 'RPD - SEDE CENTRAL'
+    details: user?.signatureSettings?.details || 'SEDE CENTRAL'
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -81,7 +81,7 @@ export default function SignatureSettingsPage() {
       stampName: user?.username || 'JUAN PÉREZ GARCÍA',
       stampPosition: user?.role || 'GERENTE DE OPERACIONES',
       colegiatura: 'CIP: 123456',
-      details: 'RPD - SEDE CENTRAL'
+      details: 'SEDE CENTRAL'
     });
   };
 
@@ -96,7 +96,7 @@ export default function SignatureSettingsPage() {
         <div className="w-full xl:w-[500px] space-y-6">
           <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm overflow-y-auto max-h-[85vh]">
             <h3 className="text-xl font-black text-slate-800 mb-8 flex items-center">
-              <Settings className="w-6 h-6 mr-3 text-blue-600" />
+              <Settings className="w-6 h-6 mr-3 text-primary" />
               Parámetros del Sello
             </h3>
 
@@ -110,7 +110,7 @@ export default function SignatureSettingsPage() {
                   type="range" min="160" max="400" step="5"
                   value={settings.width}
                   onChange={(e) => setSettings(p => ({ ...p, width: parseInt(e.target.value) }))}
-                  className="w-full accent-blue-600"
+                  className="w-full accent-primary"
                 />
                 <span className="text-[10px] font-bold text-slate-600 block text-right">{settings.width}px</span>
               </div>
@@ -122,7 +122,7 @@ export default function SignatureSettingsPage() {
                   type="range" min="50" max="250" step="5"
                   value={settings.height}
                   onChange={(e) => setSettings(p => ({ ...p, height: parseInt(e.target.value) }))}
-                  className="w-full accent-blue-600"
+                  className="w-full accent-primary"
                 />
                 <span className="text-[10px] font-bold text-slate-600 block text-right">{settings.height}px</span>
               </div>
@@ -130,7 +130,7 @@ export default function SignatureSettingsPage() {
 
             {/* Font Sizes Section */}
             <div className="space-y-6 mb-10 bg-slate-50 p-6 rounded-3xl border border-slate-100">
-              <h4 className="text-xs font-black text-blue-600 uppercase tracking-widest mb-4">Tamaños de Fuente (pt)</h4>
+              <h4 className="text-xs font-black text-primary uppercase tracking-widest mb-4">Tamaños de Fuente (pt)</h4>
 
               {[
                 { label: 'Nombre Completo', key: 'name' },
@@ -142,7 +142,7 @@ export default function SignatureSettingsPage() {
                 <div key={item.key} className="space-y-2">
                   <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase">
                     <span className="flex items-center"><Type className="w-3 h-3 mr-2" /> {item.label}</span>
-                    <span className="text-blue-600">{settings.fontSizes[item.key]}pt</span>
+                    <span className="text-primary">{settings.fontSizes[item.key]}pt</span>
                   </div>
                   <input
                     type="range" min="5" max="18" step="0.5"
@@ -151,7 +151,7 @@ export default function SignatureSettingsPage() {
                       ...p,
                       fontSizes: { ...p.fontSizes, [item.key]: parseFloat(e.target.value) }
                     }))}
-                    className="w-full accent-blue-600 h-1.5"
+                    className="w-full accent-primary h-1.5"
                   />
                 </div>
               ))}
@@ -167,7 +167,7 @@ export default function SignatureSettingsPage() {
                     placeholder="Nombre completo"
                     value={settings.stampName}
                     onChange={(e) => setSettings(p => ({ ...p, stampName: e.target.value }))}
-                    className="w-full bg-white p-3 rounded-xl border border-slate-200 text-[11px] font-bold text-slate-900 outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+                    className="w-full bg-white p-3 rounded-xl border border-slate-200 text-[11px] font-bold text-slate-900 outline-none focus:ring-1 focus:ring-primary transition-all"
                   />
                 </div>
                 <div>
@@ -176,7 +176,7 @@ export default function SignatureSettingsPage() {
                     placeholder="Cargo"
                     value={settings.stampPosition}
                     onChange={(e) => setSettings(p => ({ ...p, stampPosition: e.target.value }))}
-                    className="w-full bg-white p-3 rounded-xl border border-slate-200 text-[11px] font-bold text-slate-900 outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+                    className="w-full bg-white p-3 rounded-xl border border-slate-200 text-[11px] font-bold text-slate-900 outline-none focus:ring-1 focus:ring-primary transition-all"
                   />
                 </div>
                 <div>
@@ -185,16 +185,16 @@ export default function SignatureSettingsPage() {
                     placeholder="CIP: 123456"
                     value={settings.colegiatura}
                     onChange={(e) => setSettings(p => ({ ...p, colegiatura: e.target.value }))}
-                    className="w-full bg-white p-3 rounded-xl border border-slate-200 text-[11px] font-bold text-slate-900 outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+                    className="w-full bg-white p-3 rounded-xl border border-slate-200 text-[11px] font-bold text-slate-900 outline-none focus:ring-1 focus:ring-primary transition-all"
                   />
                 </div>
                 <div className="col-span-2">
                   <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Detalles adicionales</label>
                   <input
-                    placeholder="RPD - SEDE CENTRAL"
+                    placeholder="SEDE CENTRAL"
                     value={settings.details}
                     onChange={(e) => setSettings(p => ({ ...p, details: e.target.value }))}
-                    className="w-full bg-white p-3 rounded-xl border border-slate-200 text-[11px] font-bold text-slate-900 outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+                    className="w-full bg-white p-3 rounded-xl border border-slate-200 text-[11px] font-bold text-slate-900 outline-none focus:ring-1 focus:ring-primary transition-all"
                   />
                 </div>
               </div>
@@ -202,7 +202,7 @@ export default function SignatureSettingsPage() {
 
             {/* Imagen del Sello (Logo) */}
             <div className="space-y-4 mb-8 bg-slate-50 p-6 rounded-3xl border border-slate-100">
-              <h4 className="text-xs font-black text-blue-600 uppercase tracking-widest mb-2 flex items-center">
+              <h4 className="text-xs font-black text-primary uppercase tracking-widest mb-2 flex items-center">
                 <Image className="w-3.5 h-3.5 mr-2" /> Imagen / Logo del Sello
               </h4>
               <p className="text-[10px] text-slate-500 mb-3">Esta imagen aparecerá al lado del texto de la firma.</p>
@@ -216,7 +216,7 @@ export default function SignatureSettingsPage() {
                     />
                   </div>
                   <div className="flex-1">
-                    <p className="text-[10px] font-bold text-emerald-600 uppercase mb-1">Imagen cargada</p>
+                    <p className="text-[10px] font-bold text-success uppercase mb-1">Imagen cargada</p>
                     <button
                       onClick={async () => {
                         try {
@@ -257,7 +257,7 @@ export default function SignatureSettingsPage() {
                   />
                   <label
                     htmlFor="sigImageInput"
-                    className="flex items-center justify-center gap-2 p-4 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-all"
+                    className="flex items-center justify-center gap-2 p-4 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:border-primary-200 hover:bg-primary-50/50 transition-all"
                   >
                     <Image className="w-5 h-5 text-slate-400" />
                     <span className="text-[11px] font-bold text-slate-400">Subir Logo (PNG/JPG)</span>
@@ -266,78 +266,13 @@ export default function SignatureSettingsPage() {
               )}
             </div>
 
-            {/* Imagen de la Franja (Acento) */}
-            <div className="space-y-4 mb-10 bg-slate-50 p-6 rounded-3xl border border-slate-100">
-              <h4 className="text-xs font-black text-blue-600 uppercase tracking-widest mb-2 flex items-center">
-                <Image className="w-3.5 h-3.5 mr-2" /> Imagen de la Franja (Acento)
-              </h4>
-              <p className="text-[10px] text-slate-500 mb-3">Esta imagen reemplazará la franja de color en el borde izquierdo.</p>
-              {settings.accentImagePath ? (
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-16 bg-white rounded-xl border border-slate-200 flex items-center justify-center overflow-hidden">
-                    <img
-                      src={`/uploads/signatures/${settings.accentImagePath.split(/[\\/]/).pop()}`}
-                      alt="Acento"
-                      className="max-w-full max-h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-[10px] font-bold text-emerald-600 uppercase mb-1">Imagen cargada</p>
-                    <button
-                      onClick={async () => {
-                        try {
-                          const { data } = await api.delete('/auth/accent-image');
-                          updateUser({ signatureSettings: data.signatureSettings });
-                          setSettings(p => { const s = { ...p }; delete s.accentImagePath; return s; });
-                        } catch (err) {
-                          alert('Error: ' + err.message);
-                        }
-                      }}
-                      className="text-[10px] font-bold text-red-500 hover:text-red-700 flex items-center gap-1 transition-colors"
-                    >
-                      <Trash2 className="w-3 h-3" /> Eliminar
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg"
-                    className="hidden"
-                    id="accentImageInput"
-                    onChange={async (e) => {
-                      const file = e.target.files[0];
-                      if (!file) return;
-                      const formData = new FormData();
-                      formData.append('image', file);
-                      try {
-                        const { data } = await api.post('/auth/upload-accent-image', formData);
-                        updateUser({ signatureSettings: data.signatureSettings });
-                        setSettings(p => ({ ...p, accentImagePath: data.signatureSettings.accentImagePath }));
-                      } catch (err) {
-                        alert('Error: ' + err.message);
-                      }
-                      e.target.value = '';
-                    }}
-                  />
-                  <label
-                    htmlFor="accentImageInput"
-                    className="flex items-center justify-center gap-2 p-4 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-all"
-                  >
-                    <Image className="w-5 h-5 text-slate-400" />
-                    <span className="text-[11px] font-bold text-slate-400">Subir Franja (PNG/JPG)</span>
-                  </label>
-                </div>
-              )}
-            </div>
 
             {/* Toggle Fields */}
             <div className="space-y-3 mb-10">
               <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Visibilidad de Campos</h4>
               <div className="grid grid-cols-2 gap-4">
                 {['name', 'position', 'colegiatura', 'details', 'hash'].map(field => (
-                  <label key={field} className="flex items-center space-x-2 cursor-pointer bg-white border border-slate-100 p-3 rounded-xl hover:bg-blue-50 transition-colors">
+                  <label key={field} className="flex items-center space-x-2 cursor-pointer bg-white border border-slate-100 p-3 rounded-xl hover:bg-primary-50 transition-colors">
                     <input
                       type="checkbox"
                       checked={settings.fields[field]}
@@ -345,7 +280,7 @@ export default function SignatureSettingsPage() {
                         ...p,
                         fields: { ...p.fields, [field]: e.target.checked }
                       }))}
-                      className="w-4 h-4 rounded text-blue-600"
+                      className="w-4 h-4 rounded text-primary"
                     />
                     <span className="text-[10px] font-black text-slate-600 uppercase tracking-tighter capitalize">{field}</span>
                   </label>
@@ -361,7 +296,7 @@ export default function SignatureSettingsPage() {
                   type="range" min="0.5" max="1" step="0.05"
                   value={settings.opacity}
                   onChange={(e) => setSettings(p => ({ ...p, opacity: parseFloat(e.target.value) }))}
-                  className="w-full accent-blue-600"
+                  className="w-full accent-primary"
                 />
                 <span className="text-[9px] font-bold text-slate-500 block text-right">{Math.round(settings.opacity * 100)}%</span>
               </div>
@@ -379,13 +314,38 @@ export default function SignatureSettingsPage() {
               </div>
             </div>
 
+            {/* Rotation Selector */}
+            <div className="mb-10 bg-slate-50 p-6 rounded-3xl border border-slate-100">
+              <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Orientación del Sello</h4>
+              <div className="flex gap-2">
+                {[
+                  { label: '0°', value: 0 },
+                  { label: '90°', value: 90 },
+                  { label: '180°', value: 180 },
+                  { label: '270°', value: 270 },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setSettings(p => ({ ...p, rotation: opt.value }))}
+                    className={`flex-1 py-3 text-[10px] font-bold uppercase rounded-xl border transition-all ${
+                      (settings.rotation || 0) === opt.value
+                        ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20'
+                        : 'bg-white text-slate-500 border-slate-200 hover:border-primary-200'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Save Button */}
             <div className="pt-6 border-t border-slate-100 flex gap-4">
               <button onClick={resetToDefault} className="flex-1 py-4 text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 bg-slate-50 rounded-2xl">Restaurar</button>
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="flex-[2] bg-blue-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-500/30 hover:bg-blue-700 transition-all flex items-center justify-center disabled:opacity-50"
+                className="flex-[2] bg-primary text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/30 hover:bg-primary-700 transition-all flex items-center justify-center disabled:opacity-50"
               >
                 <Save className="w-4 h-4 mr-2" /> {isSaving ? 'Guardando...' : 'Guardar Sello'}
               </button>
@@ -394,9 +354,9 @@ export default function SignatureSettingsPage() {
         </div>
 
         {/* Live Preview Panel */}
-        <div className="flex-1 flex flex-col gap-8">
-          <div className="flex-1 min-h-[600px] bg-slate-200 rounded-[3.5rem] shadow-2xl relative flex flex-col items-center justify-center p-20 overflow-hidden">
-            <div className="absolute top-12 left-12 text-blue-400 text-[10px] font-black tracking-[0.4em] uppercase opacity-40">Motor de Renderizado Tiempo Real</div>
+        <div className="flex-1 flex flex-col gap-8 w-full">
+          <div className="flex-1 min-h-[500px] sm:min-h-[700px] bg-slate-200 rounded-[2.5rem] sm:rounded-[3.5rem] shadow-2xl relative flex flex-col items-center justify-center p-4 sm:p-12">
+            <div className="absolute top-12 left-12 text-primary-300 text-[10px] font-black tracking-[0.4em] uppercase opacity-40">Motor de Renderizado Tiempo Real</div>
 
             {(() => {
               const PS = 2; // Preview Scale: 2x para visualización legible
@@ -408,27 +368,20 @@ export default function SignatureSettingsPage() {
                 : (accentWidth + LAYOUT.paddingX) * PS;
 
               return (
-                <motion.div
+                <div className="w-full overflow-x-auto scrollbar-hide flex justify-center items-center py-20">
+                  <motion.div
                   animate={{
                     width: settings.width * PS,
                     height: settings.height * PS,
+                    rotate: settings.rotation || 0,
                   }}
                   className="shadow-2xl relative overflow-hidden"
                   style={{ opacity: settings.opacity, borderRadius: '3px' }}
                 >
                   {/* Fondo transparente */}
 
-                  {/* Borde izquierdo accent / Imagen de acento */}
-                  {settings.accentImagePath ? (
-                    <img
-                      src={`/uploads/signatures/${settings.accentImagePath.split(/[\\/]/).pop()}`}
-                      alt="Acento"
-                      className="absolute left-0 top-0 bottom-0 object-cover"
-                      style={{ width: `${scaledAccent}px` }}
-                    />
-                  ) : (
-                    <div className="absolute left-0 top-0 bottom-0" style={{ width: `${scaledAccent}px`, backgroundColor: settings.borderColor }} />
-                  )}
+                  {/* Borde izquierdo accent */}
+                  <div className="absolute left-0 top-0 bottom-0" style={{ width: `${scaledAccent}px`, backgroundColor: settings.borderColor }} />
 
                   {/* Bordes sutiles */}
                   <div className="absolute inset-0" style={{
@@ -510,6 +463,7 @@ export default function SignatureSettingsPage() {
                     </div>
                   </div>
                 </motion.div>
+                </div>
               );
             })()}
 
@@ -518,14 +472,14 @@ export default function SignatureSettingsPage() {
                 Tamaño real: {settings.width} x {settings.height} px
               </span>
               <div className="flex items-center space-x-6 text-[10px] font-bold text-slate-500">
-                <div className="flex items-center"><div className="w-2 h-2 bg-emerald-500 rounded-full mr-2"></div> Preview 2x</div>
-                <div className="flex items-center"><div className="w-2 h-2 bg-blue-600 rounded-full mr-2"></div> Motor PDF-LIB Sync</div>
+                <div className="flex items-center"><div className="w-2 h-2 bg-success rounded-full mr-2"></div> Preview 2x</div>
+                <div className="flex items-center"><div className="w-2 h-2 bg-primary rounded-full mr-2"></div> Motor PDF-LIB Sync</div>
               </div>
             </div>
 
             <AnimatePresence>
               {showSuccess && (
-                <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="absolute bottom-12 bg-emerald-500 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center font-bold text-sm">
+                <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="absolute bottom-12 bg-success text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center font-bold text-sm">
                   <CheckCircle className="w-5 h-5 mr-3" /> ¡Configuración de sello guardada exitosamente!
                 </motion.div>
               )}
@@ -541,10 +495,10 @@ export default function SignatureSettingsPage() {
               <p className="text-xs text-slate-500 leading-relaxed">Un sello de 220x100px es ideal para firmas multipágina. Mantén la letra mayor a 7pt para legibilidad.</p>
             </div>
             <div className="bg-white p-6 rounded-[2rem] border border-slate-200">
-              <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center mb-4">
-                <Shield className="w-5 h-5 text-indigo-600" />
+              <div className="w-10 h-10 bg-secondary-50 rounded-xl flex items-center justify-center mb-4">
+                <Shield className="w-5 h-5 text-secondary" />
               </div>
-              <h5 className="font-bold text-slate-800 mb-2">Integridad RPD</h5>
+              <h5 className="font-bold text-slate-800 mb-2">Integridad</h5>
               <p className="text-xs text-slate-500 leading-relaxed">El hash de validación es obligatorio para firmas oficiales, pero opcional en sellos de cortesía visual.</p>
             </div>
           </div>

@@ -13,7 +13,7 @@ export const STAMP_TEXTS = {
   HEADER: '',
   FOOTER_DATE_PREFIX: 'Fecha:',
   FOOTER_HASH_PREFIX: 'VERIFICADO:',
-  FOOTER_IDENTITY: 'IDENTIDAD VERIFICADA POR RPD',
+  FOOTER_IDENTITY: 'IDENTIDAD VERIFICADA POR',
 };
 
 // Configuración por defecto del sello
@@ -35,9 +35,9 @@ export const DEFAULT_SETTINGS = {
     hash: true,
   },
   color: '#0f172a',
-  backgroundColor: '#ffffff',
   borderColor: '#3b82f6',
   borderWidth: 2,
+  rotation: 0,
   opacity: 0.95,
   accentImagePath: null,
 };

@@ -78,6 +78,9 @@ export default function CanvasSignature({ documentId, onCoordsChange, onTotalPag
       if (renderTaskRef.current) {
         renderTaskRef.current.cancel();
       }
+      if (pdfRef.current) {
+        pdfRef.current.destroy();
+      }
     };
   }, [documentId, renderPage]);
 
@@ -106,9 +109,10 @@ export default function CanvasSignature({ documentId, onCoordsChange, onTotalPag
 
     setSignaturePos({ x, y });
 
-    const pdfX = (x / viewport.scale);
-    const pdfY = (viewport.height - y) / viewport.scale;
-
+    // Escalar las coordenadas del clic (en píxeles de pantalla) al espacio del viewport de pdf.js
+    const canvasX = x * (viewport.width / rect.width);
+    const canvasY = y * (viewport.height / rect.height);
+    const [pdfX, pdfY] = viewport.convertToPdfPoint(canvasX, canvasY);
     // Las coordenadas x,y ya están en PDF points (divididas por viewport.scale).
     // width/height se envían en CSS pixels; el backend las convierte con PX_TO_PT.
     onCoordsChange({
@@ -122,7 +126,7 @@ export default function CanvasSignature({ documentId, onCoordsChange, onTotalPag
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center p-20 space-y-4">
-      <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
       <p className="text-slate-400 font-bold animate-pulse">Cargando motor de renderizado...</p>
     </div>
   );
@@ -155,7 +159,7 @@ export default function CanvasSignature({ documentId, onCoordsChange, onTotalPag
                 const val = parseInt(e.target.value);
                 if (val >= 1 && val <= totalPages) setPageNumber(val);
               }}
-              className="w-14 text-center text-sm font-bold border border-slate-200 rounded-lg py-1 outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-14 text-center text-sm font-bold border border-slate-200 rounded-lg py-1 outline-none focus:ring-2 focus:ring-primary"
             />
             <span className="text-sm text-slate-500">de <strong>{totalPages}</strong></span>
           </div>
@@ -177,17 +181,28 @@ export default function CanvasSignature({ documentId, onCoordsChange, onTotalPag
             onClick={handleCanvasClick}
             className="cursor-crosshair bg-white"
           />
-          {signaturePos && viewport && (
+          {signaturePos && viewport && (() => {
+            const overlayW = pdfWidth * viewport.scale;
+            const overlayH = pdfHeight * viewport.scale;
+            // Clamping: replicar el backend para que el preview coincida con el PDF
+            const clampedLeft = Math.max(0, Math.min(signaturePos.x, viewport.width - overlayW));
+            const clampedTop = Math.max(0, Math.min(signaturePos.y - overlayH, viewport.height - overlayH));
+            return (
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
+              animate={{
+                scale: 1,
+                opacity: 1,
+                rotate: sigSettings.rotation || 0
+              }}
               className="absolute pointer-events-none overflow-hidden"
               style={{
-                left: signaturePos.x,
-                top: signaturePos.y - (pdfHeight * viewport.scale),
-                width: pdfWidth * viewport.scale,
-                height: pdfHeight * viewport.scale,
+                left: clampedLeft,
+                top: clampedTop,
+                width: overlayW,
+                height: overlayH,
                 opacity: sigSettings.opacity,
+                transformOrigin: '0% 100%',
               }}
             >
               {/* Fondo transparente */}
@@ -212,16 +227,23 @@ export default function CanvasSignature({ documentId, onCoordsChange, onTotalPag
               />
 
               {/* Contenido del sello - todas las dimensiones usan PX_TO_PT para coincidir con el PDF */}
-              <div
-                className="relative h-full flex flex-col justify-center"
-                style={{
-                  paddingLeft: `${(accentWidth * viewport.scale) + (LAYOUT.paddingX * PX_TO_PT * viewport.scale)}px`,
-                  paddingRight: `${LAYOUT.paddingX * PX_TO_PT * viewport.scale}px`,
-                  paddingTop: `${LAYOUT.paddingTop * PX_TO_PT * viewport.scale * 0.8}px`,
-                  paddingBottom: `${LAYOUT.paddingBottom * PX_TO_PT * viewport.scale * 0.8}px`,
-                }}
-              >
-                {/* Imagen si existe */}
+              {(() => {
+                const hasImg = !!sigSettings.signatureImagePath;
+                const imgAreaWidth = pdfWidth * 0.35;
+                const textPadLeft = hasImg 
+                  ? (accentWidth + imgAreaWidth + (8 * PX_TO_PT)) 
+                  : (accentWidth + (LAYOUT.paddingX * PX_TO_PT));
+
+                return (
+                  <div
+                    className="relative h-full flex flex-col justify-center"
+                    style={{
+                      paddingLeft: `${textPadLeft * viewport.scale}px`,
+                      paddingRight: `${LAYOUT.paddingX * PX_TO_PT * viewport.scale}px`,
+                      paddingTop: `${LAYOUT.paddingTop * PX_TO_PT * viewport.scale * 0.8}px`,
+                    }}
+                  >
+                {/* Imagen del sello si existe */}
                 {sigSettings.signatureImagePath && (
                   <img
                     src={`/uploads/signatures/${sigSettings.signatureImagePath.split(/[\\/]/).pop()}`}
@@ -322,17 +344,20 @@ export default function CanvasSignature({ documentId, onCoordsChange, onTotalPag
                       {STAMP_TEXTS.FOOTER_HASH_PREFIX} XXXXXX
                     </span>
                   )}
+                  </div>
                 </div>
-              </div>
+              );
+            })()}
             </motion.div>
-          )}
+            );
+          })()}
         </div>
       </div>
 
       {/* Info de páginas a firmar */}
       {totalPages > 1 && signaturePos && (
-        <div className="text-center py-2 bg-blue-50 border-t border-blue-100">
-          <p className="text-xs font-bold text-blue-600">
+        <div className="text-center py-2 bg-primary-50 border-t border-primary-100">
+          <p className="text-xs font-bold text-primary">
             {pageMode === 'current'
               ? `La firma se aplicará solo en la página ${pageNumber}`
               : pageMode === 'range' && pageRange

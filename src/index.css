@@ -7,9 +7,15 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  --primary: #23376E;
+  --accent: #F8AF3C;
+  --background: hsl(210, 20%, 98%);
+  --foreground: hsl(224, 52%, 25%);
+  --border: hsl(220, 20%, 88%);
+
+  color-scheme: light;
+  color: var(--foreground);
+  background-color: var(--background);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -25,6 +31,6 @@ body {
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900;
+    @apply bg-[hsl(210,20%,98%)] text-[hsl(224,52%,25%)];
   }
 }

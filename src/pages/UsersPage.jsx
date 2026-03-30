@@ -74,9 +74,9 @@ export default function UsersPage() {
 
   const roleColors = {
     'Administrador': 'bg-red-100 text-red-600',
-    'Asistente': 'bg-violet-100 text-violet-600',
+    'Asistente': 'bg-secondary-100 text-secondary',
     'Ejecutor': 'bg-amber-100 text-amber-600',
-    'Firmante': 'bg-blue-100 text-blue-600',
+    'Firmante': 'bg-primary-100 text-primary',
   };
 
   return (
@@ -85,7 +85,7 @@ export default function UsersPage() {
         <p className="text-slate-500">{users.length} usuarios registrados</p>
         <button
           onClick={openCreate}
-          className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-3 rounded-xl flex items-center space-x-2 shadow-lg shadow-blue-500/30 transition-all"
+          className="bg-primary hover:bg-primary-500 text-white font-bold px-6 py-3 rounded-xl flex items-center space-x-2 shadow-lg shadow-primary/30 transition-all"
         >
           <Plus className="w-5 h-5" />
           <span>Nuevo Usuario</span>
@@ -127,7 +127,7 @@ export default function UsersPage() {
                   <div className="flex items-center justify-end space-x-1">
                     <button
                       onClick={() => openEdit(u)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      className="p-2 text-primary hover:bg-primary-50 rounded-lg transition-colors"
                       title="Editar"
                     >
                       <Pencil className="w-4 h-4" />
@@ -166,7 +166,7 @@ export default function UsersPage() {
             >
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-bold flex items-center">
-                  <Shield className="w-5 h-5 mr-2 text-blue-600" />
+                  <Shield className="w-5 h-5 mr-2 text-primary" />
                   {editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}
                 </h3>
                 <button onClick={() => setShowModal(false)} className="p-1 hover:bg-slate-100 rounded-lg">
@@ -180,7 +180,7 @@ export default function UsersPage() {
                   <input
                     value={form.username}
                     onChange={(e) => setForm(p => ({ ...p, username: e.target.value }))}
-                    className="w-full bg-white text-slate-900 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                    className="w-full bg-white text-slate-900 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary font-medium"
                   />
                 </div>
                 <div>
@@ -189,7 +189,7 @@ export default function UsersPage() {
                     type="email"
                     value={form.email}
                     onChange={(e) => setForm(p => ({ ...p, email: e.target.value }))}
-                    className="w-full bg-white text-slate-900 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                    className="w-full bg-white text-slate-900 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary font-medium"
                   />
                 </div>
                 <div>
@@ -201,7 +201,7 @@ export default function UsersPage() {
                     value={form.password}
                     onChange={(e) => setForm(p => ({ ...p, password: e.target.value }))}
                     placeholder={editingUser ? '••••••••' : ''}
-                    className="w-full bg-white text-slate-900 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                    className="w-full bg-white text-slate-900 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary font-medium"
                   />
                 </div>
                 <div>
@@ -209,7 +209,7 @@ export default function UsersPage() {
                   <select
                     value={form.roleId}
                     onChange={(e) => setForm(p => ({ ...p, roleId: parseInt(e.target.value) }))}
-                    className="w-full border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    className="w-full border border-slate-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary bg-white"
                   >
                     <option value="">Seleccionar rol</option>
                     {roles.map(r => (
@@ -229,7 +229,7 @@ export default function UsersPage() {
                 <button
                   onClick={handleSave}
                   disabled={loading || !form.username || !form.email || (!editingUser && !form.password)}
-                  className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/30 disabled:opacity-50"
+                  className="flex-1 px-4 py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary-700 shadow-lg shadow-primary/30 disabled:opacity-50"
                 >
                   {loading ? 'Guardando...' : editingUser ? 'Actualizar' : 'Crear'}
                 </button>

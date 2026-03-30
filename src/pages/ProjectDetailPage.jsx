@@ -107,8 +107,8 @@ export default function ProjectDetailPage() {
 
   const statusColors = {
     'PENDING': 'bg-amber-100 text-amber-600 border-amber-200',
-    'PARTIAL': 'bg-blue-100 text-blue-600 border-blue-200',
-    'COMPLETED': 'bg-emerald-100 text-emerald-600 border-emerald-200',
+    'PARTIAL': 'bg-primary-100 text-primary border-primary-200',
+    'COMPLETED': 'bg-success-100 text-success border-success-200',
     'REPLACED': 'bg-slate-100 text-slate-600 border-slate-200',
   };
 
@@ -122,14 +122,14 @@ export default function ProjectDetailPage() {
   if (loading) return (
     <Layout title="Cargando...">
       <div className="flex justify-center py-20">
-        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     </Layout>
   );
 
   if (!project) return (
     <Layout title="Proyecto no encontrado">
-      <Link to="/projects" className="text-blue-600 hover:underline flex items-center">
+      <Link to="/projects" className="text-primary hover:underline flex items-center">
         <ChevronLeft className="w-4 h-4 mr-1" /> Volver a Proyectos
       </Link>
     </Layout>
@@ -143,7 +143,7 @@ export default function ProjectDetailPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <Link to="/projects" className="text-sm text-blue-600 hover:underline flex items-center mb-2">
+          <Link to="/projects" className="text-sm text-primary hover:underline flex items-center mb-2">
             <ChevronLeft className="w-4 h-4 mr-1" /> Volver a Proyectos
           </Link>
           {project.description && (
@@ -158,7 +158,7 @@ export default function ProjectDetailPage() {
         {canManage && (
           <button
             onClick={() => setShowUpload(true)}
-            className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-3 rounded-xl flex items-center space-x-2 shadow-lg shadow-blue-500/30 transition-all"
+            className="bg-primary hover:bg-primary-500 text-white font-bold px-6 py-3 rounded-xl flex items-center space-x-2 shadow-lg shadow-primary/30 transition-all"
           >
             <Upload className="w-5 h-5" />
             <span>Subir Documento</span>
@@ -171,11 +171,11 @@ export default function ProjectDetailPage() {
         <div className="bg-white rounded-2xl border border-slate-200 p-6 mb-8">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-bold text-slate-700">Progreso del proyecto</span>
-            <span className="text-sm font-bold text-blue-600">{completedDocs}/{docs.length}</span>
+            <span className="text-sm font-bold text-primary">{completedDocs}/{docs.length}</span>
           </div>
           <div className="w-full bg-slate-100 rounded-full h-2.5">
             <div
-              className={`h-2.5 rounded-full transition-all ${completedDocs === docs.length ? 'bg-emerald-500' : 'bg-blue-500'}`}
+              className={`h-2.5 rounded-full transition-all ${completedDocs === docs.length ? 'bg-success' : 'bg-primary-500'}`}
               style={{ width: `${docs.length > 0 ? (completedDocs / docs.length) * 100 : 0}%` }}
             />
           </div>
@@ -227,7 +227,7 @@ export default function ProjectDetailPage() {
                               <div
                                 key={s.id}
                                 className={`w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-[9px] font-black uppercase ${
-                                  s.status === 'SIGNED' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-500'
+                                  s.status === 'SIGNED' ? 'bg-success-100 text-success' : 'bg-slate-100 text-slate-500'
                                 }`}
                                 title={`${s.user?.username || '?'} - ${s.status === 'SIGNED' ? 'Firmado' : 'Pendiente'}`}
                               >
@@ -239,7 +239,7 @@ export default function ProjectDetailPage() {
                         </div>
                         <div className="w-20 bg-slate-100 rounded-full h-1.5">
                           <div
-                            className={`h-1.5 rounded-full transition-all ${signedCount === totalSigners ? 'bg-emerald-500' : 'bg-blue-500'}`}
+                            className={`h-1.5 rounded-full transition-all ${signedCount === totalSigners ? 'bg-success' : 'bg-primary-500'}`}
                             style={{ width: `${(signedCount / totalSigners) * 100}%` }}
                           />
                         </div>
@@ -254,7 +254,7 @@ export default function ProjectDetailPage() {
                       {canSign && (
                         <Link
                           to={`/signature/${doc.id}`}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-2 text-primary hover:bg-primary-50 rounded-lg transition-colors"
                           title="Firmar"
                         >
                           <ShieldCheck className="w-5 h-5" />
@@ -263,7 +263,7 @@ export default function ProjectDetailPage() {
                       <a
                         href={`/uploads/${(doc.signedPath || doc.originalPath).split(/[\\/]/).pop()}`}
                         download
-                        className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                        className="p-2 text-success hover:bg-success-50 rounded-lg transition-colors"
                         title="Descargar"
                         target="_blank"
                         rel="noreferrer"
@@ -273,7 +273,7 @@ export default function ProjectDetailPage() {
                       {canManage && (
                         <button
                           onClick={() => openAssignModal(doc.id)}
-                          className="p-2 text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
+                          className="p-2 text-secondary hover:bg-secondary-50 rounded-lg transition-colors"
                           title="Asignar Firmantes"
                         >
                           <UserPlus className="w-5 h-5" />
@@ -309,10 +309,10 @@ export default function ProjectDetailPage() {
             >
               <h3 className="text-xl font-bold mb-6">Subir documento a "{project.name}"</h3>
               <form onSubmit={handleUpload}>
-                <div className="border-2 border-dashed border-slate-200 rounded-2xl p-10 text-center mb-6 hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer">
+                <div className="border-2 border-dashed border-slate-200 rounded-2xl p-10 text-center mb-6 hover:border-primary-200 hover:bg-primary-50 transition-all cursor-pointer">
                   <input type="file" accept=".pdf" className="hidden" id="fileInput" onChange={(e) => setFile(e.target.files[0])} />
                   <label htmlFor="fileInput" className="cursor-pointer">
-                    <Upload className="w-12 h-12 text-blue-500 mx-auto mb-4" />
+                    <Upload className="w-12 h-12 text-primary mx-auto mb-4" />
                     <p className="text-lg font-medium">Arrastra tu PDF aquí</p>
                     <p className="text-slate-400">o haz clic para seleccionar (Máx. 500MB)</p>
                   </label>
@@ -329,11 +329,11 @@ export default function ProjectDetailPage() {
                 {uploadProgress > 0 && (
                   <div className="mb-6">
                     <div className="flex justify-between mb-2">
-                      <span className="text-sm font-medium text-blue-600">Subiendo...</span>
-                      <span className="text-sm font-medium text-blue-600">{uploadProgress}%</span>
+                      <span className="text-sm font-medium text-primary">Subiendo...</span>
+                      <span className="text-sm font-medium text-primary">{uploadProgress}%</span>
                     </div>
                     <div className="w-full bg-slate-100 rounded-full h-2">
-                      <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                      <div className="bg-primary h-2 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
                     </div>
                   </div>
                 )}
@@ -341,7 +341,7 @@ export default function ProjectDetailPage() {
                   <button type="button" onClick={() => setShowUpload(false)} className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-slate-600 font-bold hover:bg-slate-50">
                     Cancelar
                   </button>
-                  <button type="submit" className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/30">
+                  <button type="submit" className="flex-1 px-4 py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary-700 shadow-lg shadow-primary/30">
                     Cargar Archivo
                   </button>
                 </div>
@@ -366,7 +366,7 @@ export default function ProjectDetailPage() {
             >
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-bold flex items-center">
-                  <Users className="w-5 h-5 mr-2 text-violet-600" />
+                  <Users className="w-5 h-5 mr-2 text-secondary" />
                   Asignar Firmantes
                 </h3>
                 <button onClick={() => setShowAssign(null)} className="p-1 hover:bg-slate-100 rounded-lg">
@@ -375,7 +375,7 @@ export default function ProjectDetailPage() {
               </div>
               {assignLoading ? (
                 <div className="flex justify-center py-8">
-                  <div className="w-8 h-8 border-3 border-violet-600 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-8 h-8 border-3 border-secondary border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : (
                 <>
@@ -384,11 +384,11 @@ export default function ProjectDetailPage() {
                       <label
                         key={u.id}
                         className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
-                          selectedUserIds.includes(u.id) ? 'border-violet-300 bg-violet-50' : 'border-slate-100 hover:bg-slate-50'
+                          selectedUserIds.includes(u.id) ? 'border-secondary-300 bg-secondary-50' : 'border-slate-100 hover:bg-slate-50'
                         }`}
                       >
                         <div className="flex items-center space-x-3">
-                          <input type="checkbox" checked={selectedUserIds.includes(u.id)} onChange={() => toggleUser(u.id)} className="w-4 h-4 rounded text-violet-600" />
+                          <input type="checkbox" checked={selectedUserIds.includes(u.id)} onChange={() => toggleUser(u.id)} className="w-4 h-4 rounded text-secondary" />
                           <div>
                             <p className="text-sm font-bold text-slate-800">{u.username}</p>
                             <p className="text-xs text-slate-400">{u.email}</p>
@@ -405,7 +405,7 @@ export default function ProjectDetailPage() {
                     <button
                       onClick={handleAssignSigners}
                       disabled={selectedUserIds.length === 0 || assignLoading}
-                      className="bg-violet-600 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-violet-700 disabled:opacity-50 shadow-lg shadow-violet-500/30 transition-all"
+                      className="bg-secondary text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-secondary-600 disabled:opacity-50 shadow-lg shadow-secondary-500/30 transition-all"
                     >
                       Asignar Firmantes
                     </button>
