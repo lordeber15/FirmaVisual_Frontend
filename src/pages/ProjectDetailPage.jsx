@@ -19,6 +19,7 @@ export default function ProjectDetailPage() {
   const [showUpload, setShowUpload] = useState(false);
   const [file, setFile] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStats, setUploadStats] = useState({ speed: 0, eta: 0, startTime: null });
 
   // Assign modal
   const [showAssign, setShowAssign] = useState(null);
@@ -56,12 +57,26 @@ export default function ProjectDetailPage() {
     try {
       await api.post('/documents', formData, {
         onUploadProgress: (progressEvent) => {
-          const pct = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          const { loaded, total } = progressEvent;
+          const pct = Math.round((loaded * 100) / total);
           setUploadProgress(pct);
+
+          if (pct > 0) {
+            setUploadStats(prev => {
+              const now = Date.now();
+              const start = prev.startTime || now;
+              const elapsed = (now - start) / 1000;
+              const speed = elapsed > 0 ? (loaded / elapsed) : 0;
+              const remaining = total - loaded;
+              const eta = speed > 0 ? Math.round(remaining / speed) : 0;
+              return { startTime: start, speed, eta };
+            });
+          }
         }
       });
       setShowUpload(false);
       setUploadProgress(0);
+      setUploadStats({ speed: 0, eta: 0, startTime: null });
       setFile(null);
       fetchProject();
     } catch (err) {
@@ -327,13 +342,53 @@ export default function ProjectDetailPage() {
                   </div>
                 )}
                 {uploadProgress > 0 && (
-                  <div className="mb-6">
-                    <div className="flex justify-between mb-2">
-                      <span className="text-sm font-medium text-primary">Subiendo...</span>
-                      <span className="text-sm font-medium text-primary">{uploadProgress}%</span>
-                    </div>
-                    <div className="w-full bg-slate-100 rounded-full h-2">
-                      <div className="bg-primary h-2 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                  <div className="mb-6 bg-slate-50/50 p-6 rounded-2xl border border-slate-100 overflow-hidden relative group">
+                    <motion.div
+                      animate={{ x: ['-100%', '100%'] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none"
+                    />
+
+                    <div className="relative z-10">
+                      <div className="flex justify-between items-end mb-3">
+                        <div>
+                          <p className="text-xs font-black text-primary uppercase tracking-[0.2em] mb-1">
+                            {uploadProgress < 100 ? 'Subiendo Documento' : 'Procesando servidor...'}
+                          </p>
+                          <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400">
+                            <span className="flex items-center">
+                              <Clock className="w-3 h-3 mr-1" />
+                              {uploadStats.eta > 0 ? `aprox. ${uploadStats.eta}s restantes` : 'calculando...'}
+                            </span>
+                            <span className="w-1 h-1 bg-slate-200 rounded-full" />
+                            <span>{(uploadStats.speed / (1024 * 1024)).toFixed(1)} MB/s</span>
+                          </div>
+                        </div>
+                        <span className="text-2xl font-black text-primary tracking-tighter">
+                          {uploadProgress}<span className="text-sm opacity-50 ml-0.5">%</span>
+                        </span>
+                      </div>
+
+                      <div className="w-full bg-slate-200/50 rounded-full h-3 p-0.5 backdrop-blur-sm overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${uploadProgress}%` }}
+                          transition={{ type: 'spring', damping: 20, stiffness: 60 }}
+                          className="h-full rounded-full bg-gradient-to-r from-primary-400 via-primary to-primary-600 relative"
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent rounded-full" />
+                        </motion.div>
+                      </div>
+
+                      {uploadProgress === 100 && (
+                        <motion.p
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-[10px] text-center font-bold text-success mt-4 flex items-center justify-center gap-2"
+                        >
+                          <ShieldCheck className="w-3.5 h-3.5" /> ¡Carga completa! Finalizando proceso...
+                        </motion.p>
+                      )}
                     </div>
                   </div>
                 )}

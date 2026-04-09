@@ -33,6 +33,7 @@ export const DEFAULT_SETTINGS = {
     colegiatura: true,
     details: true,
     hash: true,
+    accentBorder: true,
   },
   color: '#0f172a',
   borderColor: '#3b82f6',

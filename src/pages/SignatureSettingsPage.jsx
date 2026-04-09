@@ -26,7 +26,8 @@ export default function SignatureSettingsPage() {
       position: true,
       colegiatura: true,
       details: true,
-      hash: true
+      hash: true,
+      accentBorder: true
     },
     color: '#0f172a',
     backgroundColor: '#ffffff',
@@ -271,18 +272,25 @@ export default function SignatureSettingsPage() {
             <div className="space-y-3 mb-10">
               <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Visibilidad de Campos</h4>
               <div className="grid grid-cols-2 gap-4">
-                {['name', 'position', 'colegiatura', 'details', 'hash'].map(field => (
-                  <label key={field} className="flex items-center space-x-2 cursor-pointer bg-white border border-slate-100 p-3 rounded-xl hover:bg-primary-50 transition-colors">
+                {[
+                  { key: 'name',         label: 'Nombre' },
+                  { key: 'position',     label: 'Cargo' },
+                  { key: 'colegiatura',  label: 'Colegiatura' },
+                  { key: 'details',      label: 'Detalles' },
+                  { key: 'hash',         label: 'Hash' },
+                  { key: 'accentBorder', label: 'Borde lateral' },
+                ].map(({ key, label }) => (
+                  <label key={key} className="flex items-center space-x-2 cursor-pointer bg-white border border-slate-100 p-3 rounded-xl hover:bg-primary-50 transition-colors">
                     <input
                       type="checkbox"
-                      checked={settings.fields[field]}
+                      checked={settings.fields[key]}
                       onChange={(e) => setSettings(p => ({
                         ...p,
-                        fields: { ...p.fields, [field]: e.target.checked }
+                        fields: { ...p.fields, [key]: e.target.checked }
                       }))}
                       className="w-4 h-4 rounded text-primary"
                     />
-                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-tighter capitalize">{field}</span>
+                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-tighter">{label}</span>
                   </label>
                 ))}
               </div>
@@ -368,26 +376,30 @@ export default function SignatureSettingsPage() {
                 : (accentWidth + LAYOUT.paddingX) * PS;
 
               return (
-                <div className="w-full overflow-x-auto scrollbar-hide flex justify-center items-center py-20">
+                <div className="w-full overflow-x-auto scrollbar-hide flex justify-center items-center py-20 min-h-[400px]">
                   <motion.div
                   animate={{
                     width: settings.width * PS,
                     height: settings.height * PS,
                     rotate: settings.rotation || 0,
                   }}
-                  className="shadow-2xl relative overflow-hidden"
+                  className="shadow-2xl relative overflow-hidden bg-white"
                   style={{ opacity: settings.opacity, borderRadius: '3px' }}
                 >
-                  {/* Fondo transparente */}
+                    {/* Fondo blanco del sello */}
+                    <div className="absolute inset-0 bg-white" />
 
-                  {/* Borde izquierdo accent */}
-                  <div className="absolute left-0 top-0 bottom-0" style={{ width: `${scaledAccent}px`, backgroundColor: settings.borderColor }} />
+                    {/* Borde izquierdo accent */}
+                    {settings.fields.accentBorder !== false && (
+                      <div className="absolute left-0 top-0 bottom-0" style={{ width: `${scaledAccent}px`, backgroundColor: settings.borderColor, zIndex: 1 }} />
+                    )}
 
                   {/* Bordes sutiles */}
                   <div className="absolute inset-0" style={{
                     borderTop: `1px solid ${settings.borderColor}25`,
                     borderRight: `1px solid ${settings.borderColor}25`,
                     borderBottom: `1px solid ${settings.borderColor}25`,
+                    borderLeft: `1px solid ${settings.borderColor}25`,
                   }} />
 
                   {/* Imagen del sello */}

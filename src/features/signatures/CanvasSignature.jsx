@@ -107,14 +107,23 @@ export default function CanvasSignature({ documentId, onCoordsChange, onTotalPag
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    setSignaturePos({ x, y });
+    // Calculamos el tamaño del sello en píxeles del canvas actual
+    const overlayW = pdfWidth * viewport.scale;
+    const overlayH = pdfHeight * viewport.scale;
 
-    // Escalar las coordenadas del clic (en píxeles de pantalla) al espacio del viewport de pdf.js
-    const canvasX = x * (viewport.width / rect.width);
-    const canvasY = y * (viewport.height / rect.height);
+    // Aplicamos Clamping: Aseguramos que la firma no se salga de los bordes del canvas
+    // La coordenada Y del clic se ajusta para que el sello quede sobre el punto del clic (como en el preview)
+    const clampedX = Math.max(0, Math.min(x, viewport.width - overlayW));
+    const clampedY = Math.max(0, Math.min(y, viewport.height - overlayH));
+
+    setSignaturePos({ x: clampedX, y: clampedY + overlayH }); // Guardamos la base para el preview local
+
+    // Escalar las coordenadas al espacio del Documento PDF (puntos)
+    const canvasX = clampedX;
+    const canvasY = clampedY + overlayH; // Enviamos la esquina inferior izquierda al backend
+    
     const [pdfX, pdfY] = viewport.convertToPdfPoint(canvasX, canvasY);
-    // Las coordenadas x,y ya están en PDF points (divididas por viewport.scale).
-    // width/height se envían en CSS pixels; el backend las convierte con PX_TO_PT.
+
     onCoordsChange({
       x: pdfX,
       y: pdfY,
@@ -184,9 +193,11 @@ export default function CanvasSignature({ documentId, onCoordsChange, onTotalPag
           {signaturePos && viewport && (() => {
             const overlayW = pdfWidth * viewport.scale;
             const overlayH = pdfHeight * viewport.scale;
-            // Clamping: replicar el backend para que el preview coincida con el PDF
-            const clampedLeft = Math.max(0, Math.min(signaturePos.x, viewport.width - overlayW));
-            const clampedTop = Math.max(0, Math.min(signaturePos.y - overlayH, viewport.height - overlayH));
+            
+            // La posición ya viene "clamped" desde handleCanvasClick
+            const overlayLeft = signaturePos.x;
+            const overlayTop = signaturePos.y - overlayH;
+            
             return (
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
@@ -197,8 +208,8 @@ export default function CanvasSignature({ documentId, onCoordsChange, onTotalPag
               }}
               className="absolute pointer-events-none overflow-hidden"
               style={{
-                left: clampedLeft,
-                top: clampedTop,
+                left: overlayLeft,
+                top: overlayTop,
                 width: overlayW,
                 height: overlayH,
                 opacity: sigSettings.opacity,
@@ -208,21 +219,24 @@ export default function CanvasSignature({ documentId, onCoordsChange, onTotalPag
               {/* Fondo transparente */}
 
               {/* Borde izquierdo accent */}
-              <div
-                className="absolute left-0 top-0 bottom-0"
-                style={{
-                  width: `${accentWidth * viewport.scale}px`,
-                  backgroundColor: sigSettings.borderColor,
-                }}
-              />
+              {sigSettings.fields.accentBorder !== false && (
+                <div
+                  className="absolute left-0 top-0 bottom-0"
+                  style={{
+                    width: `${accentWidth * viewport.scale}px`,
+                    backgroundColor: sigSettings.borderColor,
+                  }}
+                />
+              )}
 
-              {/* Bordes sutiles (top, right, bottom) */}
+              {/* Bordes sutiles (4 lados) */}
               <div
                 className="absolute inset-0"
                 style={{
                   borderTop: `1px solid ${sigSettings.borderColor}25`,
                   borderRight: `1px solid ${sigSettings.borderColor}25`,
                   borderBottom: `1px solid ${sigSettings.borderColor}25`,
+                  borderLeft: `1px solid ${sigSettings.borderColor}25`,
                 }}
               />
 
@@ -232,7 +246,7 @@ export default function CanvasSignature({ documentId, onCoordsChange, onTotalPag
                 const imgAreaWidth = pdfWidth * 0.35;
                 const textPadLeft = hasImg 
                   ? (accentWidth + imgAreaWidth + (8 * PX_TO_PT)) 
-                  : (accentWidth + (LAYOUT.paddingX * PX_TO_PT));
+                  : ((sigSettings.fields.accentBorder !== false ? accentWidth : 0) + (LAYOUT.paddingX * PX_TO_PT));
 
                 return (
                   <div
