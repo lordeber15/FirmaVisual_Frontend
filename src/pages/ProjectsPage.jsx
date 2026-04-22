@@ -55,7 +55,7 @@ export default function ProjectsPage() {
     setShowAssignMembers(projectId);
     setAssignLoading(true);
     try {
-      const { data } = await api.get('/documents/available-signers');
+      const { data } = await api.get('/projects/available-members/list');
       setAvailableUsers(data);
       const proj = projects.find(p => p.id === projectId);
       setSelectedMemberIds((proj?.members || []).map(m => m.userId));
@@ -331,7 +331,7 @@ export default function ProjectsPage() {
                           </div>
                         </div>
                         <span className="text-[10px] font-bold text-slate-400 uppercase bg-slate-100 px-2 py-0.5 rounded">
-                          {u.Role?.name || 'Sin rol'}
+                          {u.roles || 'Sin rol'}
                         </span>
                       </label>
                     ))}

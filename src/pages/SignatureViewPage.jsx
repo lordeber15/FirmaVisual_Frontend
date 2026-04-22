@@ -12,8 +12,12 @@ export default function SignatureViewPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [coords, setCoords] = useState(null);
+  const [selectedSettings, setSelectedSettings] = useState(user?.signatureSettings || {});
   const [isSigning, setIsSigning] = useState(false);
   const [signatureInfo, setSignatureInfo] = useState(null);
+  const [pendingRoles, setPendingRoles] = useState([]); // Roles del usuario pendientes de firmar
+  const [selectedRoleId, setSelectedRoleId] = useState(null);
+  const [selectedCargo, setSelectedCargo] = useState(null);
   const [alreadySigned, setAlreadySigned] = useState(false);
   const [notAssigned, setNotAssigned] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -22,47 +26,138 @@ export default function SignatureViewPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [pageMode, setPageMode] = useState('all');
   const [pageRange, setPageRange] = useState('');
+  const [pdfRefreshKey, setPdfRefreshKey] = useState(0);
 
   const sigData = {
-    name: user?.signatureSettings?.stampName || user?.username || 'USUARIO',
-    position: user?.signatureSettings?.stampPosition || user?.role || 'FIRMANTE',
-    colegiatura: user?.signatureSettings?.colegiatura || 'CIP: 123456',
-    details: user?.signatureSettings?.details || 'SEDE CENTRAL'
+    name: selectedSettings?.stampName || user?.username || '',
+    position: selectedCargo || '',
+    colegiatura: selectedSettings?.colegiatura || '',
+    details: selectedSettings?.details || ''
   };
 
-  // Cargar info de firmantes al montar
+  // ─── Inicializar cargo y rol por defecto ───────────────────────────────
+  useEffect(() => {
+    if (user && user.userRoles?.length > 0) {
+      const firstUR = user.userRoles[0];
+
+      // 1. Inicializar RoleId si no está puesto (usar comparación estricta con null)
+      if (selectedRoleId === null || selectedRoleId === undefined) {
+        setSelectedRoleId(firstUR.roleId);
+      }
+
+      // 2. Inicializar Cargo y Ajustes si no están puestos
+      if (!selectedCargo) {
+        const initialSettings = firstUR.signatureSettings || user.signatureSettings || {};
+        setSelectedSettings(initialSettings);
+
+        const defaultCargo = initialSettings.stampPosition
+          || firstUR.cargo
+          || user.role
+          || '';
+        setSelectedCargo(defaultCargo);
+      }
+    }
+  }, [user, selectedRoleId]); // Re-ejecutar si user cambian o si el rol se resetea
+
+  // ─── Cargar info de firmantes del documento ───────────────────────────────
   useEffect(() => {
     const loadSignatureInfo = async () => {
       try {
         const { data } = await api.get(`/signatures/document/${id}`);
         setSignatureInfo(data);
 
-        const { signers, signatures } = data;
+        const { signers } = data;
+        const userAsSigner = signers.filter(s => s.userId === user?.id && s.status === 'PENDING');
 
-        // Verificar si el usuario ya firmó
-        const userSigned = signatures.some(s => s.userId === user?.id);
-        setAlreadySigned(userSigned);
+        if (userAsSigner.length > 0) {
+          setPendingRoles(userAsSigner);
 
-        // Verificar si hay firmantes asignados y el usuario no está entre ellos
-        if (signers.length > 0) {
-          const isAssigned = signers.some(s => s.userId === user?.id);
-          setNotAssigned(!isAssigned);
+          // Solo autoseleccionar si no hay un rol seleccionado ya
+          if (selectedRoleId === null || selectedRoleId === undefined) {
+            const firstPendingRoleId = userAsSigner[0].roleId;
+            setSelectedRoleId(firstPendingRoleId);
+
+            const ur = user?.userRoles?.find(r => parseInt(r.roleId) === parseInt(firstPendingRoleId));
+            if (ur) {
+              const currentSettings = ur.signatureSettings || user?.signatureSettings || {};
+              setSelectedSettings(currentSettings);
+              setSelectedCargo(
+                currentSettings?.stampPosition
+                || ur.cargo
+                || ur.Role?.name
+                || ''
+              );
+            }
+          }
+        } else {
+          setPendingRoles([]);
         }
       } catch (err) {
         console.error('Error loading signature info:', err);
       }
     };
 
-    loadSignatureInfo();
-  }, [id, user?.id]);
+    if (id) {
+      loadSignatureInfo();
+    }
+  }, [id, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Recalcular estados de firma según el Rol Seleccionado ────────────────
+  useEffect(() => {
+    if (!signatureInfo || !selectedRoleId) return;
+
+    const { signers, signatures } = signatureInfo;
+
+    // 1. ¿Ya firmó con este rol específico?
+    const hasSignedWithRole = signatures.some(s =>
+      s.userId === user?.id && parseInt(s.roleId) === parseInt(selectedRoleId)
+    );
+    setAlreadySigned(hasSignedWithRole);
+
+    // 2. ¿Está asignado con este rol específico? (ignorar si ya firmó, para no mostrar "No autorizado" en vez de "Ya firmado")
+    const isAssignedWithRole = signers.some(s =>
+      s.userId === user?.id && (!s.roleId || parseInt(s.roleId) === parseInt(selectedRoleId))
+    );
+    setNotAssigned(!isAssignedWithRole && !hasSignedWithRole);
+
+  }, [signatureInfo, selectedRoleId, user?.id]);
+
+  const handleRoleSwitch = (roleId) => {
+    setSelectedRoleId(roleId);
+    const ur = user?.userRoles?.find(r => parseInt(r.roleId) === parseInt(roleId));
+
+    // 1. Cargar ajustes (si no existen para el rol, usar los globales del usuario como base)
+    const currentSettings = ur?.signatureSettings || user?.signatureSettings || {};
+    setSelectedSettings(currentSettings);
+
+    // 2. Sincronizar Cargo: Priorizar diseño, luego cargo administrativo, luego nombre del rol
+    setSelectedCargo(
+      currentSettings?.stampPosition
+      || ur?.cargo
+      || ur?.Role?.name
+      || ''
+    );
+  };
 
   const handleSign = async () => {
     if (!coords) return setShowError('Por favor, ubica la firma en el documento antes de estampar.');
+
+    // Si solo hay un rol y no se ha seleccionado (por carrera de carga), forzarlo
+    let roleIdToUse = selectedRoleId;
+    if ((roleIdToUse === null || roleIdToUse === undefined) && user?.userRoles?.length === 1) {
+      roleIdToUse = user.userRoles[0].roleId;
+    }
+
+    if (roleIdToUse === null || roleIdToUse === undefined) {
+      return setShowError('Selecciona un rol para firmar.');
+    }
+
     setIsSigning(true);
     try {
       const response = await api.post('/signatures', {
         documentId: id,
         type: 'VISUAL',
+        roleId: selectedRoleId,
         coords: { ...coords, pageMode, pageRange },
         signatureData: {
           name: sigData.name,
@@ -72,8 +167,8 @@ export default function SignatureViewPage() {
           dateTime: new Date().toLocaleString(),
           hash: Math.random().toString(36).substring(2, 12).toUpperCase(),
           settings: {
-            ...user?.signatureSettings,
-            rotation: user?.signatureSettings?.rotation || 0
+            ...selectedSettings,
+            rotation: selectedSettings?.rotation || 0
           }
         }
       });
@@ -102,9 +197,10 @@ export default function SignatureViewPage() {
             onCoordsChange={canSign ? setCoords : () => { }}
             onTotalPages={setTotalPages}
             sigData={sigData}
-            settings={user?.signatureSettings}
+            settings={selectedSettings}
             pageMode={pageMode}
             pageRange={pageRange}
+            refreshKey={pdfRefreshKey}
           />
         </div>
 
@@ -136,6 +232,7 @@ export default function SignatureViewPage() {
           )}
 
           {/* Panel de firma */}
+          {/* Panel de firma */}
           <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-200/60 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary-50 rounded-bl-[100px] -z-10"></div>
 
@@ -150,20 +247,63 @@ export default function SignatureViewPage() {
                 <p className="text-sm font-bold text-slate-800 truncate">{sigData.name}</p>
               </div>
 
+              {/* ── Combo Box de cambio de Rol (visible si el usuario tiene múltiples roles) ── */}
+              {(user?.userRoles?.length || 0) > 1 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] uppercase font-black tracking-widest text-slate-400">Rol de firma</p>
+                    <Users className="w-3.5 h-3.5 text-primary opacity-60" />
+                  </div>
+                  <div className="relative group">
+                    <select
+                      value={selectedRoleId || ''}
+                      onChange={(e) => handleRoleSwitch(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-xs font-bold text-slate-700 appearance-none focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer group-hover:bg-white group-hover:border-primary/30"
+                    >
+                      {user.userRoles.map(ur => (
+                        <option key={ur.roleId} value={ur.roleId}>
+                          {ur.Role?.name || 'Firmante'} - {ur.cargo || 'Sin cargo específico'}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-hover:text-primary transition-colors">
+                      <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                        <path d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-400 font-medium">
+                    Cambia el rol para ajustar el <span className="text-primary font-bold">Cargo</span> automáticamente.
+                  </p>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <motion.div
+                  key={`cargo-${selectedRoleId}`}
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-slate-50 p-4 rounded-2xl border border-slate-100"
+                >
                   <p className="text-[10px] uppercase font-black tracking-widest text-slate-400 mb-1">Cargo</p>
-                  <p className="text-xs font-bold text-slate-700 truncate">{sigData.position}</p>
-                </div>
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <p className="text-xs font-bold text-slate-700 truncate" title={selectedCargo}>
+                    {selectedCargo}
+                  </p>
+                </motion.div>
+                <motion.div
+                  key={`id-${selectedRoleId}`}
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-slate-50 p-4 rounded-2xl border border-slate-100"
+                >
                   <p className="text-[10px] uppercase font-black tracking-widest text-slate-400 mb-1">ID</p>
-                  <p className="text-xs font-bold text-slate-700 truncate">{sigData.colegiatura || 'N/A'}</p>
-                </div>
+                  <p className="text-xs font-bold text-slate-700 truncate">{sigData.colegiatura}</p>
+                </motion.div>
               </div>
 
               <div className="flex justify-between items-center text-xs px-2 py-1 bg-primary-50/50 rounded-lg">
                 <span className="font-medium text-primary-800">Tamaño del sello</span>
-                <span className="font-bold text-primary">{user?.signatureSettings?.width || 220}x{user?.signatureSettings?.height || 100}px</span>
+                <span className="font-bold text-primary">{selectedSettings?.width || 220}x{selectedSettings?.height || 100}px</span>
               </div>
 
               {/* Selector de páginas */}
@@ -251,7 +391,10 @@ export default function SignatureViewPage() {
                         }`}>
                         {(s.user?.username || '?')[0].toUpperCase()}
                       </div>
-                      <span className="text-sm font-medium text-slate-700">{s.user?.username}</span>
+                      <div>
+                        <p className="text-sm font-bold text-slate-700">{s.user?.username}</p>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase">{s.role?.name || 'Firmante'}</p>
+                      </div>
                     </div>
                     <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${s.status === 'SIGNED'
                       ? 'bg-success-100 text-success'
@@ -371,15 +514,36 @@ export default function SignatureViewPage() {
                 </motion.a>
               )} */}
 
-              <motion.button
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.7 }}
-                onClick={() => navigate('/')}
-                className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl hover:bg-slate-800 active:scale-95 transition-all"
-              >
-                Volver al Inicio
-              </motion.button>
+              <div className="flex flex-col gap-3">
+                <motion.button
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                  onClick={async () => {
+                    setShowSuccess(false);
+                    // Recargar info para ver si hay más roles pendientes
+                    const { data } = await api.get(`/signatures/document/${id}`);
+                    setSignatureInfo(data);
+                    setCoords(null);
+                    // Forzar recarga del PDF para mostrar la versión firmada
+                    setPdfRefreshKey(k => k + 1);
+                  }}
+                  className="w-full px-6 bg-primary text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl hover:bg-primary-700 active:scale-95 transition-all flex items-center justify-center"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  Ver Documento
+                </motion.button>
+
+                <motion.button
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.7 }}
+                  onClick={() => navigate('/')}
+                  className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl hover:bg-slate-800 active:scale-95 transition-all"
+                >
+                  Volver al Inicio
+                </motion.button>
+              </div>
             </motion.div>
           </div>
         )}

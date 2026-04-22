@@ -19,7 +19,7 @@ export const STAMP_TEXTS = {
 // Configuración por defecto del sello
 export const DEFAULT_SETTINGS = {
   width: 220,
-  height: 100,
+  height: 120,
   fontSizes: {
     name: 10,
     position: 8,

@@ -11,6 +11,7 @@ import { STAMP_TEXTS, LAYOUT, DEFAULT_SETTINGS } from '../features/signatures/si
 
 export default function SignatureSettingsPage() {
   const { user, updateUser } = useAuth();
+  const [selectedRoleId, setSelectedRoleId] = useState(null);
   const [settings, setSettings] = useState({
     width: 220,
     height: 100,
@@ -34,38 +35,71 @@ export default function SignatureSettingsPage() {
     borderColor: '#3b82f6',
     borderWidth: 2,
     opacity: 0.95,
-    stampName: user?.signatureSettings?.stampName || user?.username || 'JUAN PÉREZ GARCÍA',
-    stampPosition: user?.signatureSettings?.stampPosition || user?.role || 'GERENTE DE OPERACIONES',
-    colegiatura: user?.signatureSettings?.colegiatura || 'CIP: 123456',
-    details: user?.signatureSettings?.details || 'SEDE CENTRAL'
+    stampName: user?.username || '',
+    stampPosition: '',
+    colegiatura: '',
+    details: ''
   });
 
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
-    if (user?.signatureSettings) {
-      setSettings(prev => ({
-        ...prev,
-        ...user.signatureSettings,
-        fontSizes: { ...prev.fontSizes, ...(user.signatureSettings.fontSizes || {}) },
-        fields: { ...prev.fields, ...(user.signatureSettings.fields || {}) },
-        stampName: user.signatureSettings.stampName || prev.stampName,
-        stampPosition: user.signatureSettings.stampPosition || prev.stampPosition,
-        colegiatura: user.signatureSettings.colegiatura || prev.colegiatura,
-        details: user.signatureSettings.details || prev.details
-      }));
+    // Inicializar roleId con el primero disponible si existe
+    if (user?.userRoles?.length > 0 && selectedRoleId === null) {
+      setSelectedRoleId(user.userRoles[0].roleId);
     }
   }, [user]);
+
+  useEffect(() => {
+    let baseSettings = user?.signatureSettings || {};
+    
+    // Si hay un rol seleccionado, priorizar sus ajustes
+    if (selectedRoleId) {
+      const ur = user?.userRoles?.find(r => r.roleId === parseInt(selectedRoleId));
+      if (ur && ur.signatureSettings) {
+        baseSettings = ur.signatureSettings;
+      } else if (ur) {
+        // Si el rol no tiene ajustes aún, inicializamos el cargo con su valor de UserRole
+        baseSettings = { 
+          ...DEFAULT_SETTINGS,
+          stampName: user?.username || '',
+          stampPosition: ur.cargo || ur.Role?.name || '',
+          colegiatura: '',
+          details: ''
+        };
+      }
+    }
+
+    setSettings(prev => ({
+      ...prev,
+      ...baseSettings,
+      fontSizes: { ...prev.fontSizes, ...(baseSettings.fontSizes || {}) },
+      fields: { ...prev.fields, ...(baseSettings.fields || {}) },
+      stampName: baseSettings.stampName || user?.username || '',
+      stampPosition: baseSettings.stampPosition || (selectedRoleId ? '' : prev.stampPosition),
+      colegiatura: baseSettings.colegiatura || (selectedRoleId ? '' : prev.colegiatura),
+      details: baseSettings.details || (selectedRoleId ? '' : prev.details)
+    }));
+  }, [user, selectedRoleId]);
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
       const { data } = await api.put('/auth/update-settings', {
-        signatureSettings: settings
+        signatureSettings: settings,
+        roleId: selectedRoleId
       });
 
-      updateUser({ signatureSettings: data.signatureSettings });
+      if (selectedRoleId) {
+        // Actualizar el signatureSettings del UserRole específico en el estado local
+        const updatedRoles = user.userRoles.map(ur => 
+          ur.roleId === parseInt(selectedRoleId) ? { ...ur, signatureSettings: data.signatureSettings } : ur
+        );
+        updateUser({ userRoles: updatedRoles });
+      } else {
+        updateUser({ signatureSettings: data.signatureSettings });
+      }
 
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
@@ -96,9 +130,41 @@ export default function SignatureSettingsPage() {
         {/* Configuration Panel */}
         <div className="w-full xl:w-[500px] space-y-6">
           <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm overflow-y-auto max-h-[85vh]">
-            <h3 className="text-xl font-black text-slate-800 mb-8 flex items-center">
+            <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center">
               <Settings className="w-6 h-6 mr-3 text-primary" />
               Parámetros del Sello
+            </h3>
+
+            {/* Selector de Rol */}
+            {user?.userRoles?.length > 1 && (
+              <div className="mb-8 p-6 bg-primary-50 rounded-[2rem] border border-primary-100/50">
+                <label className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-3 block">Configurando para el Rol</label>
+                <div className="relative">
+                  <select
+                    value={selectedRoleId || ''}
+                    onChange={(e) => setSelectedRoleId(e.target.value)}
+                    className="w-full bg-white border border-primary-200 rounded-xl py-3 px-4 text-xs font-bold text-slate-700 appearance-none focus:ring-2 focus:ring-primary outline-none cursor-pointer"
+                  >
+                    {user.userRoles.map(ur => (
+                      <option key={ur.roleId} value={ur.roleId}>
+                        {ur.Role?.name || 'Firmante'} - {ur.cargo || 'Sin cargo'}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-primary">
+                    <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                      <path d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+                <p className="mt-3 text-[9px] text-primary-700 leading-tight font-medium">
+                  Las dimensiones e imágenes cargadas a continuación se guardarán <span className="font-black">solo para este rol específico.</span>
+                </p>
+              </div>
+            )}
+
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-8 flex items-center">
+              <LayoutIcon className="w-4 h-4 mr-2" /> Ajustes de Diseño
             </h3>
 
             {/* Dimensions Section */}
@@ -219,10 +285,20 @@ export default function SignatureSettingsPage() {
                   <div className="flex-1">
                     <p className="text-[10px] font-bold text-success uppercase mb-1">Imagen cargada</p>
                     <button
-                      onClick={async () => {
+                    onClick={async () => {
                         try {
-                          const { data } = await api.delete('/auth/signature-image');
-                          updateUser({ signatureSettings: data.signatureSettings });
+                          const url = `/auth/signature-image${selectedRoleId ? `?roleId=${selectedRoleId}` : ''}`;
+                          const { data } = await api.delete(url);
+                          
+                          if (selectedRoleId) {
+                            const updatedRoles = user.userRoles.map(ur => 
+                              ur.roleId === parseInt(selectedRoleId) ? { ...ur, signatureSettings: data.signatureSettings } : ur
+                            );
+                            updateUser({ userRoles: updatedRoles });
+                          } else {
+                            updateUser({ signatureSettings: data.signatureSettings });
+                          }
+                          
                           setSettings(p => { const s = { ...p }; delete s.signatureImagePath; return s; });
                         } catch (err) {
                           alert('Error: ' + err.message);
@@ -246,9 +322,20 @@ export default function SignatureSettingsPage() {
                       if (!file) return;
                       const formData = new FormData();
                       formData.append('image', file);
+                      if (selectedRoleId) formData.append('roleId', selectedRoleId);
+                      
                       try {
                         const { data } = await api.post('/auth/upload-signature-image', formData);
-                        updateUser({ signatureSettings: data.signatureSettings });
+                        
+                        if (selectedRoleId) {
+                          const updatedRoles = user.userRoles.map(ur => 
+                            ur.roleId === parseInt(selectedRoleId) ? { ...ur, signatureSettings: data.signatureSettings } : ur
+                          );
+                          updateUser({ userRoles: updatedRoles });
+                        } else {
+                          updateUser({ signatureSettings: data.signatureSettings });
+                        }
+                        
                         setSettings(p => ({ ...p, signatureImagePath: data.signatureSettings.signatureImagePath }));
                       } catch (err) {
                         alert('Error: ' + err.message);
@@ -435,11 +522,31 @@ export default function SignatureSettingsPage() {
                     )}
 
                     {settings.fields.position && (
-                      <p className="font-bold leading-tight truncate" style={{
-                        fontSize: `${settings.fontSizes.position * PS}px`,
-                        color: '#4b5563',
-                        marginBottom: `${LAYOUT.lineSpacing * PS}px`,
-                      }}>{settings.stampPosition}</p>
+                      (() => {
+                        const words = settings.stampPosition.split(' ').filter(Boolean);
+                        const lines = [];
+                        let currentLine = words[0] || '';
+                        const charWidth = settings.fontSizes.position * PS * 0.52;
+                        const maxWidth = (settings.width * PS) - textPadLeft - (LAYOUT.paddingX * PS);
+                        
+                        for (let i = 1; i < words.length; i++) {
+                          if ((currentLine + ' ' + words[i]).length * charWidth < maxWidth) {
+                            currentLine += ' ' + words[i];
+                          } else {
+                            lines.push(currentLine);
+                            currentLine = words[i];
+                          }
+                        }
+                        if (currentLine) lines.push(currentLine);
+
+                        return lines.map((line, idx) => (
+                          <p key={`pos-${idx}`} className="font-bold leading-tight truncate" style={{
+                            fontSize: `${settings.fontSizes.position * PS}px`,
+                            color: '#4b5563',
+                            marginBottom: idx === lines.length - 1 ? `${LAYOUT.lineSpacing * PS}px` : '0px',
+                          }}>{line}</p>
+                        ));
+                      })()
                     )}
 
                     {settings.fields.colegiatura && (

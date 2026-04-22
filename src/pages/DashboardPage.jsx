@@ -4,7 +4,7 @@ import { useAuth } from '../features/auth/AuthContext';
 import Layout from '../components/Layout';
 import {
   Upload, Search, Download, Clock, ShieldCheck, FileText,
-  Users, X, UserPlus
+  Users, X, UserPlus, ChevronLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -25,12 +25,13 @@ export default function DashboardPage() {
   const [file, setFile] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
   const limit = 10;
 
   // Modal de asignación de firmantes
   const [showAssign, setShowAssign] = useState(null); // documentId o null
   const [availableUsers, setAvailableUsers] = useState([]);
-  const [selectedUserIds, setSelectedUserIds] = useState([]);
+  const [selectedSigners, setSelectedSigners] = useState([]); // [{ userId, roleId }, ...]
   const [assignLoading, setAssignLoading] = useState(false);
 
   const isAdmin = user?.role === 'Administrador';
@@ -51,7 +52,7 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchDocuments();
     if (canManage) fetchProjects();
-  }, [page, debouncedSearch]);
+  }, [page, debouncedSearch, statusFilter]);
 
   const fetchProjects = async () => {
     try {
@@ -65,7 +66,7 @@ export default function DashboardPage() {
   const fetchDocuments = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get(`/documents?page=${page}&limit=${limit}&search=${debouncedSearch}`);
+      const { data } = await api.get(`/documents?page=${page}&limit=${limit}&search=${debouncedSearch}&status=${statusFilter}`);
       setDocuments(data.documents);
       setTotal(data.total || 0);
       setTotalPages(data.totalPages || 1);
@@ -121,10 +122,15 @@ export default function DashboardPage() {
       const { data } = await api.get('/documents/available-signers');
       setAvailableUsers(data);
 
-      // Pre-seleccionar firmantes ya asignados
+      // Pre-seleccionar firmantes ya asignados (como objetos {userId, roleId})
       const doc = documents.find(d => d.id === docId);
-      const existingIds = (doc?.signers || []).map(s => s.userId);
-      setSelectedUserIds(existingIds);
+      const existingSigners = (doc?.signers || [])
+        .filter(s => s.roleId !== null && s.roleId !== undefined)
+        .map(s => ({ 
+          userId: s.userId, 
+          roleId: s.roleId 
+        }));
+      setSelectedSigners(existingSigners);
     } catch (err) {
       console.error(err);
     } finally {
@@ -133,12 +139,13 @@ export default function DashboardPage() {
   };
 
   const handleAssignSigners = async () => {
-    if (!showAssign || selectedUserIds.length === 0) return;
+    if (!showAssign) return;
     setAssignLoading(true);
     try {
-      await api.post(`/documents/${showAssign}/signers`, { userIds: selectedUserIds });
+      const sanitizedSigners = selectedSigners.filter(s => s.userId && s.roleId);
+      await api.post(`/documents/${showAssign}/signers`, { userIds: sanitizedSigners });
       setShowAssign(null);
-      setSelectedUserIds([]);
+      setSelectedSigners([]);
       fetchDocuments();
     } catch (err) {
       alert('Error al asignar firmantes: ' + err.message);
@@ -147,12 +154,15 @@ export default function DashboardPage() {
     }
   };
 
-  const toggleUser = (userId) => {
-    setSelectedUserIds(prev =>
-      prev.includes(userId)
-        ? prev.filter(id => id !== userId)
-        : [...prev, userId]
-    );
+  const toggleSigner = (userId, roleId) => {
+    setSelectedSigners(prev => {
+      const exists = prev.some(s => s.userId === userId && s.roleId === roleId);
+      if (exists) {
+        return prev.filter(s => !(s.userId === userId && s.roleId === roleId));
+      } else {
+        return [...prev, { userId, roleId }];
+      }
+    });
   };
 
   const statusColors = {
@@ -164,7 +174,7 @@ export default function DashboardPage() {
 
   const statusLabels = {
     'PENDING': 'Pendiente',
-    'PARTIAL': 'Parcial',
+    'PARTIAL': 'Firma Parcial',
     'COMPLETED': 'Completado',
     'REPLACED': 'Reemplazado',
   };
@@ -174,15 +184,36 @@ export default function DashboardPage() {
     <Layout title="Dashboard de Documentos">
       {/* Actions Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div className="relative max-w-md w-full group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 group-focus-within:text-primary transition-colors" />
-          <input
-            type="text"
-            placeholder="Buscar documentos..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white border border-slate-200 rounded-xl py-3 pl-11 pr-4 focus:ring-2 focus:ring-primary outline-none shadow-sm text-slate-900"
-          />
+        <div className="flex flex-1 items-center space-x-3">
+          <div className="relative flex-1 group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 group-focus-within:text-primary transition-colors" />
+            <input
+              type="text"
+              placeholder="Buscar por nombre..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white border border-slate-200 rounded-xl py-3 pl-11 pr-4 focus:ring-2 focus:ring-primary outline-none shadow-sm text-slate-900"
+            />
+          </div>
+          
+          <div className="relative">
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+              className="bg-white border border-slate-200 rounded-xl py-3 pl-4 pr-10 focus:ring-2 focus:ring-primary outline-none shadow-sm text-slate-900 font-bold text-sm appearance-none cursor-pointer hover:border-primary transition-all"
+            >
+              <option value="ALL">Todos los estados</option>
+              <option value="PENDING">Pendientes</option>
+              <option value="PARTIAL">Firma Parcial</option>
+              <option value="COMPLETED">Completados</option>
+            </select>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+              <ChevronLeft className="w-4 h-4 -rotate-90" />
+            </div>
+          </div>
         </div>
         {canManage && (
           <button
@@ -559,43 +590,52 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <>
-                  <div className="space-y-2 max-h-80 overflow-y-auto mb-6">
-                    {availableUsers.map((u) => (
-                      <label
-                        key={u.id}
-                        className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
-                          selectedUserIds.includes(u.id)
-                            ? 'border-secondary-300 bg-secondary-50'
-                            : 'border-slate-100 hover:bg-slate-50'
-                        }`}
-                      >
-                        <div className="flex items-center space-x-3">
-                          <input
-                            type="checkbox"
-                            checked={selectedUserIds.includes(u.id)}
-                            onChange={() => toggleUser(u.id)}
-                            className="w-4 h-4 rounded text-secondary"
-                          />
-                          <div>
-                            <p className="text-sm font-bold text-slate-800">{u.username}</p>
-                            <p className="text-xs text-slate-400">{u.email}</p>
+                  <div className="space-y-2 max-h-80 overflow-y-auto mb-6 scrollbar-thin scrollbar-thumb-slate-200">
+                    {availableUsers.map((u) => {
+                      const isSelected = selectedSigners.some(s => s.userId === u.userId && s.roleId === u.roleId);
+                      return (
+                        <label
+                          key={`${u.userId}-${u.roleId}`}
+                          className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
+                            isSelected
+                              ? 'border-secondary-300 bg-secondary-50 shadow-sm'
+                              : 'border-slate-100 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleSigner(u.userId, u.roleId)}
+                              className="w-4 h-4 rounded text-secondary focus:ring-secondary"
+                            />
+                            <div>
+                              <p className="text-sm font-bold text-slate-800">
+                                {u.User?.username || 'Usuario desconocido'}
+                              </p>
+                              <p className="text-xs text-slate-400">
+                                {u.User?.email || 'Sin correo'}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase bg-slate-100 px-2 py-0.5 rounded">
-                          {u.Role?.name || 'Sin rol'}
-                        </span>
-                      </label>
-                    ))}
+                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${
+                            isSelected ? 'bg-secondary text-white' : 'bg-slate-100 text-slate-500'
+                          }`}>
+                            {u.Role?.name || 'Firmante'}
+                          </span>
+                        </label>
+                      );
+                    })}
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-400">
-                      {selectedUserIds.length} seleccionado{selectedUserIds.length !== 1 ? 's' : ''}
+                    <span className="text-xs text-slate-400 font-medium">
+                      {selectedSigners.length} seleccionado{selectedSigners.length !== 1 ? 's' : ''}
                     </span>
                     <button
                       onClick={handleAssignSigners}
-                      disabled={selectedUserIds.length === 0 || assignLoading}
-                      className="bg-secondary text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-secondary-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-secondary-500/30 transition-all"
+                      disabled={selectedSigners.length === 0 || assignLoading}
+                      className="bg-secondary text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-secondary-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-secondary-500/30 transition-all active:scale-95"
                     >
                       Asignar Firmantes
                     </button>
